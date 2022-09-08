@@ -10,14 +10,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PSID
+from sklearn.decomposition import PCA
 
 import libs.ftd.prepare
 import utils
 from libs.leap.load import go as load_leap
 from libs.leap.plotting import plot_trajectory
 
-PLOT = True
-DEBUG = False
+PLOT  = 1
+DEBUG = 0
 
 def z_score(x: np.array, 
             u: np.array, s:np.array) -> np.array:
@@ -90,6 +91,11 @@ def fit(y, z):
         # Z-score both neural activity and behavior
         y_train, y_test = normalize(y_train, y_test)
         z_train, z_test = normalize(z_train, z_test)
+
+        # Dim red.
+        pca = PCA(n_components=20).fit(y_train)
+        y_train = pca.transform(y_train)
+        y_test = pca.transform(y_test)
 
         id_sys = PSID.PSID(y_train, z_train, 30, 10, i)
         print(f'{idx}: Fitted PSID')

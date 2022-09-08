@@ -93,12 +93,12 @@ def instantaneous_powerbands(eeg, fs):
 
     bands = np.concatenate([
                             # delta,
-                            theta,
+                            # theta,
                             alpha,
                             beta,
-                            gamma,
+                            # gamma,
                             high_gamma,
-                            bb_gamma
+                            # bb_gamma
                             ],
                            axis=1) 
     bands = abs(hilbert3(bands))
