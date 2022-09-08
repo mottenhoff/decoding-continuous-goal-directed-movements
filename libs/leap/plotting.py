@@ -5,12 +5,14 @@ import numpy as np
 def plot_effective_framerate(ts):
         # Spikes are suspected to be hand out of bounds. 
     # No label included in initial pilots
+    fig = plt.figure()
     plt.plot(ts, np.concatenate([[0], np.diff(ts)]))
     plt.title(f'Effective framerate: {1/np.diff(ts).mean():.2f} Hz')
     plt.xlabel('time diff [s]')
     plt.ylabel('time [s]')
+    fig.savefig('./figures/effective_framerate.png', dpi=300)
 
-def plot_trajectory(y, y_hat):
+def plot_trajectory(y, y_hat, label=''):
     # y = 3d coordinates [n x 3]
 
     fig = plt.figure()
@@ -21,6 +23,8 @@ def plot_trajectory(y, y_hat):
     ax.set_xlabel('x [left right]')
     ax.set_ylabel('y [up down]')
     ax.set_zlabel('z [depth]')
+
+    fig.savefig(f'./figures/trajectory_{label}.png', dpi=300)
     
     return ax
 

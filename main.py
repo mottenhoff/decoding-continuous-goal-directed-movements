@@ -2,7 +2,9 @@
 https://github.com/ShanechiLab/PyPSID
 
 '''
+import itertools
 from pathlib import Path
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,32 +71,34 @@ def fit(y, z):
     Z-score    
     
     '''
+    nx = [20, 30, 40]          # Total Number of latent states
+    n1 = [3, 5, 10]            # Latent states dedicated to behaviorally relevant dynamics
+    i  = 5                      # Subspace horizon (low dim y = high i)
 
     # y = data['eeg']           # Neural data
     # z = data['trial_labels']  # Behavioral data
+    n_folds = 5
+    n_inner_folds = 4
+    # opts = list(itertools.product(nx, n1, [i]))
 
-    # Split
-    size = 0.8
-    cutoff = int(size * y.shape[0])
-    y_train, y_test = y[:cutoff, :], y[cutoff:, :]
-    z_train, z_test = z[:cutoff, :], z[cutoff:, :]
-    
-    # Z-score both neural activity and behavior
-    y_train, y_test = normalize(y_train, y_test)
-    z_train, z_test = normalize(z_train, z_test)
+    folds = np.array_split(np.arange(y.shape[0]), n_folds)
+    for idx, fold in enumerate(folds):
 
-    nx = 6                       # Total Number of latent states
-    n1 = 3                       # Latent states dedicated to behaviorally relevant dynamics
-    i = 5                      # Subspace horizon (low dim y = high i)
+        y_train, y_test = y[fold, :], np.delete(y, fold, axis=0)
+        z_train, z_test = z[fold, :], np.delete(z, fold, axis=0)
 
-    id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
-    print('Fitted PSID')
-    zh, yh, xh = id_sys.predict(y_test)
+        # Z-score both neural activity and behavior
+        y_train, y_test = normalize(y_train, y_test)
+        z_train, z_test = normalize(z_train, z_test)
 
-    if PLOT:
-        ax = plot_trajectory(z_test, zh)
-        plt.show()
+        id_sys = PSID.PSID(y_train, z_train, 30, 10, i)
+        print(f'{idx}: Fitted PSID')
+        zh, yh, xh = id_sys.predict(y_test)
 
+        if PLOT:
+            ax = plot_trajectory(z_test, zh, label=idx)
+
+    plt.show()
     print('done')
 
 if __name__=='__main__':
@@ -105,6 +109,9 @@ if __name__=='__main__':
 
     eeg, labels, ts = prepare(data, data_ts)
 
+    if DEBUG:
+        eeg = eeg[:200, :]
+        labels = labels[:200, :]
     fit(eeg, labels)
 
     # else:
