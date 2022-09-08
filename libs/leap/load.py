@@ -1,6 +1,3 @@
-path = r'C:/Users/p70066129/Projects/Libs'
-import sys
-sys.path.insert(0, path)
 
 from bisect import bisect_right
 from pathlib import Path
@@ -9,7 +6,7 @@ from dataclasses import dataclass, fields
 import matplotlib.pyplot as plt
 import numpy as np
 
-from xdf_reader.read_xdf import read_xdf
+from libs.read_xdf import read_xdf
 from libs.leap import plotting
 
 PLOT = True
