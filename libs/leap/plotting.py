@@ -1,24 +1,28 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_trajectory(xyz, events):
 
-    xyz_cursor_reset =     xyz[events.cursor_reset_start[:, 0].astype(int)-1, :]
-    xyz_cursor_reset_end = xyz[events.cursor_reset_end[:, 0].astype(int), :]
+def plot_effective_framerate(ts):
+        # Spikes are suspected to be hand out of bounds. 
+    # No label included in initial pilots
+    plt.plot(ts, np.concatenate([[0], np.diff(ts)]))
+    plt.title(f'Effective framerate: {1/np.diff(ts).mean():.2f} Hz')
+    plt.xlabel('time diff [s]')
+    plt.ylabel('time [s]')
+
+def plot_trajectory(y, y_hat):
+    # y = 3d coordinates [n x 3]
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2])
-    ax.scatter(events.target_new[:, 1], events.target_new[:, 2], events.target_new[:, 3], s=40, c='r', label='Targets')
-    ax.scatter(xyz_cursor_reset[:, 0], xyz_cursor_reset[:, 1], xyz_cursor_reset[:, 2], c='g', label='Hand off screen')
-    ax.scatter(xyz_cursor_reset_end[:, 0], xyz_cursor_reset_end[:, 1], xyz_cursor_reset_end[:, 2], c='y', label='Hand back on screen')
-    
+    ax.plot(y[:, 0], y[:, 1], y[:, 2])
+    ax.plot(y_hat[:, 0], y_hat[:, 1], y_hat[:, 2])
+
     ax.set_xlabel('x [left right]')
     ax.set_ylabel('y [up down]')
     ax.set_zlabel('z [depth]')
-
-    ax.legend()
-    plt.show()
+    
+    return ax
 
 def check_distance(xyz, targets):
 

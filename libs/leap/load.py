@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from xdf_reader.read_xdf import read_xdf
+from libs.leap import plotting
 
-
+PLOT = True
 
 @dataclass
 class Events:
@@ -81,37 +82,36 @@ def parse_markers(markers, ts):
         event = m[0].split(';')
         
         # TODO: check for exp start
-        match event[1]:
-            case 'new_target':
-                xyz = np.array(str_to_list(event[-1])).astype(float)
-                events['t_new'] = np.vstack([events['t_new'], np.append(t, xyz)])
+        if event[1] == 'new_target':
+            xyz = np.array(str_to_list(event[-1])).astype(float)
+            events['t_new'] = np.vstack([events['t_new'], np.append(t, xyz)])
 
-            case 'target_reached':
-                xyz = np.array(str_to_list(event[-1])).astype(float)
-                events['t_reached'] = np.vstack([events['t_reached'], np.append(t, xyz)])
+        elif event[1] == 'target_reached':
+            xyz = np.array(str_to_list(event[-1])).astype(float)
+            events['t_reached'] = np.vstack([events['t_reached'], np.append(t, xyz)])
 
-            # Can be used to differentiate initial move to target
-            #      and 'popping' the bubble.
-            case 'on_target':
-                events['on_target'] = np.vstack((events['on_target'], t))
+        # Can be used to differentiate initial move to target
+        #      and 'popping' the bubble.
+        elif event[1] == 'on_target':
+            events['on_target'] = np.vstack((events['on_target'], t))
 
-            case 'off_target':
-                events['off_target'] = np.vstack((events['off_target'], t))
+        elif event[1] == 'off_target':
+            events['off_target'] = np.vstack((events['off_target'], t))
 
-            # Cursor_reset identifies jumps in trajectory. 
-            # xyz = bubble_cursor position at event
-            case 'cursor_reset_start':
-                xyz = np.array(str_to_list(event[-1])).astype(float)
-                events['c_reset_start'] = np.vstack([events['c_reset_start'],
-                                                     np.hstack([t, float(event[0]), xyz])])
+        # Cursor_reset identifies jumps in trajectory. 
+        # xyz = bubble_cursor position at event
+        elif event[1] == 'cursor_reset_start':
+            xyz = np.array(str_to_list(event[-1])).astype(float)
+            events['c_reset_start'] = np.vstack([events['c_reset_start'],
+                                                    np.hstack([t, float(event[0]), xyz])])
 
-            case 'cursor_reset_end':
-                xyz = np.array(str_to_list(event[-1])).astype(float)
-                events['c_reset_end'] = np.vstack([events['c_reset_start'],
-                                                   np.hstack([t, float(event[0]), xyz])])
-            case 'skip':
-                # TODO. (make another test session)
-                pass
+        elif event[1] == 'cursor_reset_end':
+            xyz = np.array(str_to_list(event[-1])).astype(float)
+            events['c_reset_end'] = np.vstack([events['c_reset_start'],
+                                                np.hstack([t, float(event[0]), xyz])])
+        elif event[1] == 'skip':
+            # TODO. (make another test session)
+            pass
 
     events = Events(events['t_new'], events['t_reached'],
                     events['c_reset_start'], events['c_reset_end'],
@@ -194,19 +194,17 @@ def go(path):
     leap = cut_experiment(leap, exp_time)
     eeg = cut_experiment(eeg, exp_time)
 
-    # Spikes are suspected to be hand out of bounds. 
-    # No label included in initial pilots
-    plt.plot(leap['ts'], np.concatenate([[0], np.diff(leap['ts'])]))
-    plt.title(f'Effective framerate: {1/np.diff(leap["ts"]).mean():.2f} Hz')
-    plt.xlabel('time diff [s]')
-    plt.ylabel('time [s]')
-    
+    if PLOT:
+        plotting.plot_effective_framerate(leap['ts'])
+
     events, trials = align(leap, events)
 
     leap['data'] = leap_to_bubble_space(leap['data'][:, 7:10], fn_t)
 
     aligned, idc = align_matrices_with_diff_fs(eeg['data'], eeg['ts'], 
                                                leap['data'], leap['ts'])
+
+
 
     return aligned, eeg['ts'], idc, trials, events
 

@@ -3,6 +3,9 @@ from collections import Counter
 
 # 3th party
 import numpy as np
+import scipy.signal
+from scipy import fftpack
+from mne.filter import filter_data, notch_filter
 
 # Local
 
@@ -70,3 +73,34 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
     windows = windows.transpose((0, 2, 1)) if windows.ndim == 3 else windows
 
     return windows.squeeze()
+
+def instantaneous_powerbands(eeg, fs):
+    hilbert3 = lambda x: scipy.signal.hilbert(x, fftpack.next_fast_len(len(x)), 
+                                              axis=0)[:len(x)]
+
+    # Expects a [samples x channels] matrix
+    eeg = scipy.signal.detrend(eeg, axis=0)
+    eeg -= eeg.mean(axis=0)
+    eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
+
+    # delta = filter_data(eeg.T, sfreq=fs, l_freq=2, h_freq=4).T
+    theta = filter_data(eeg.T, sfreq=fs, l_freq=4, h_freq=8).T
+    alpha = filter_data(eeg.T, sfreq=fs, l_freq=8, h_freq=12).T
+    beta = filter_data(eeg.T, sfreq=fs, l_freq=12, h_freq=30).T
+    gamma = filter_data(eeg.T, sfreq=fs, l_freq=30, h_freq=55).T
+    high_gamma = filter_data(eeg.T, sfreq=fs, l_freq=55, h_freq=90).T
+    bb_gamma = filter_data(eeg.T, sfreq=fs, l_freq=90, h_freq=170).T
+
+    bands = np.concatenate([
+                            # delta,
+                            theta,
+                            alpha,
+                            beta,
+                            gamma,
+                            high_gamma,
+                            bb_gamma
+                            ],
+                           axis=1) 
+    bands = abs(hilbert3(bands))
+
+    return bands
