@@ -1,3 +1,4 @@
+
 from bisect import bisect_right
 from pathlib import Path
 from dataclasses import dataclass, fields
@@ -6,8 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from libs.read_xdf import read_xdf
+from libs.leap import plotting
 
-
+PLOT = True
 
 @dataclass
 class Events:
@@ -189,19 +191,17 @@ def go(path):
     leap = cut_experiment(leap, exp_time)
     eeg = cut_experiment(eeg, exp_time)
 
-    # Spikes are suspected to be hand out of bounds. 
-    # No label included in initial pilots
-    plt.plot(leap['ts'], np.concatenate([[0], np.diff(leap['ts'])]))
-    plt.title(f'Effective framerate: {1/np.diff(leap["ts"]).mean():.2f} Hz')
-    plt.xlabel('time diff [s]')
-    plt.ylabel('time [s]')
-    
+    if PLOT:
+        plotting.plot_effective_framerate(leap['ts'])
+
     events, trials = align(leap, events)
 
     leap['data'] = leap_to_bubble_space(leap['data'][:, 7:10], fn_t)
 
     aligned, idc = align_matrices_with_diff_fs(eeg['data'], eeg['ts'], 
                                                leap['data'], leap['ts'])
+
+
 
     return aligned, eeg['ts'], idc, trials, events
 

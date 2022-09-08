@@ -24,8 +24,8 @@ def window(data: np.ndarray, ts: np.array, ws: int, fs: int, sr: int) -> np.ndar
     # ws = window size [ms]
     # fs = frameshift [ms]
     # sr = samplerate [Hz]
-    fs *= 0.001
-    ws *= 0.001
+    fs /= 1000
+    ws /= 1000
 
     data = np.expand_dims(data, axis=1) if data.ndim <= 1 else data
     ts -= ts[0] # set start of timeframe to 0 #TODO: align time series
