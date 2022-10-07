@@ -1,0 +1,49 @@
+checks:
+  concat_datasets: 0
+  trials_vs_cont: 0
+combine: 1
+cv:
+  gridsearch: false
+  inner_folds: 4
+  outer_folds: 5
+debug: 0
+debug_log: 0
+feature_selection: 0
+figures:
+  make_all: 1
+  fig_1: 0
+greedy_forward: 0
+kbest: 1
+missing_values:
+  xyz_samples_for_gaps: 4
+n_dims: 50
+n_random_features: 50
+n_random_samples: 10
+plot: 1
+
+# Preprocessing
+bands:
+  hfo:
+  - 55
+  - 200
+  lfo:
+  - 2
+  - 30
+  uhfo:
+  - 200
+  - 500
+window:
+  length: 300
+  shift: 50
+psid:
+  i:
+  - 25
+  n1:
+  - 20
+  nx:
+  - 30
+random: 0
+random_feature_sampling: false
+save: 1
+save_path: ./results/
+velocity: 0

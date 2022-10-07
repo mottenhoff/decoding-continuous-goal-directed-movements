@@ -1,3 +1,4 @@
+import logging
 
 from bisect import bisect_right
 from pathlib import Path
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from libs.read_xdf import read_xdf
-from libs.leap import plotting
+from libs import plotting
 
 PLOT = True
 
@@ -19,6 +20,7 @@ class Events:
     cursor_reset_end: np.array
     on_target: np.array
     off_target: np.array
+    # skip: np.array
 
 
 def locate_pos(ts, target_ts):
@@ -138,8 +140,18 @@ def get_trials(leap, events):
     for i, (s, e) in enumerate(zip(t_start_idc, t_end_idc)):
         trial_nums[s:e] = i
 
-    trial_nums[-1] = i  # Last one is not included in the loop
+    trial_nums[-1] = i  #  Last one is not included in the loop
 
+    # Fix where diff between trial_end and _start is shifted a sample
+    d_end_start = (t_start_idc[1:] - t_end_idc[:-1])
+    
+    #   Let me know if there is a large difference, then it needs more attention
+    if any(d_end_start > (warn_diff := 5)):  # Arbitrary number
+        logging.warning(f'Difference between end and start is larger than {warn_diff} samples')
+
+    for i in np.where(d_end_start)[0]:
+        trial_nums[t_end_idc[i]] = i
+    
     return trial_nums
 
 def ts_to_idx(ts_target, ts):
@@ -164,13 +176,15 @@ def align_matrices_with_diff_fs(l, ts_l, s, ts_s):
     ts = timestamps
     idc = align indices where values of s should be inserted in l
     '''
+    s = s[:, np.newaxis] if s.ndim == 1 else s
 
     s_ext = np.full((l.shape[0], s.shape[1]), np.nan)
 
     idc = np.array([locate_pos(ts_l, nt) for nt in ts_s])
     s_ext[idc, :] = s
 
-    return np.hstack((l, s_ext)), idc
+    return s_ext, idc
+    # return np.hstack((l, s_ext)), idc
 
 def leap_to_bubble_space(xyz, fn_t):
 
@@ -196,14 +210,15 @@ def go(path):
 
     events, trials = align(leap, events)
 
-    leap['data'] = leap_to_bubble_space(leap['data'][:, 7:10], fn_t)
+    xyz = leap_to_bubble_space(leap['data'][:, 7:10], fn_t)
+    xyz_ts = leap['ts']
 
-    aligned, idc = align_matrices_with_diff_fs(eeg['data'], eeg['ts'], 
-                                               leap['data'], leap['ts'])
+    xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
+                                           xyz, xyz_ts)
+    trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
+                                              trials, xyz_ts)
 
-
-
-    return aligned, eeg['ts'], idc, trials, events
+    return eeg, xyz, trials
 
 
 if __name__=='__main__':

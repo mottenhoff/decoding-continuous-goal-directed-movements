@@ -1,6 +1,9 @@
 .vscode
 data/
-figures
+_archive/*
+nohup.out
+figures/*.png
+
 
 *.zip
 

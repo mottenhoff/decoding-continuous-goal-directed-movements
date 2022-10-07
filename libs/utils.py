@@ -1,13 +1,62 @@
 # Builtin
+import logging
 from collections import Counter
+from types import SimpleNamespace
 
 # 3th party
 import numpy as np
 import scipy.signal
+import yaml
+import mne
 from scipy import fftpack
 from mne.filter import filter_data, notch_filter
 
 # Local
+mne.set_log_level('WARNING')
+
+def nested_namespace_to_dict(ns):
+    if type(ns) == SimpleNamespace:
+        d = ns.__dict__
+    else:
+        return ns
+
+    for k, v in d.items():
+        if type(ns) == SimpleNamespace:
+            d[k] = nested_namespace_to_dict(v)
+        else:
+            d[k] = v
+
+    return d
+
+def nested_dict_to_namespace(d):
+    new_dict = {}
+    for k, v in d.items():
+    
+        if type(v) == dict:
+            new_dict[k] = nested_dict_to_namespace(v)
+        else:
+            new_dict[k] = v
+    
+    return SimpleNamespace(**new_dict)
+
+def load_yaml(path):
+    """Loads the data from a .yaml file
+
+    Gets the data from a .yaml file, the user should specify the full path to the file.
+
+    Arguments:
+        path_to_file -- full path to the .yaml file to load
+
+    Returns:
+        data contained on the .yaml file
+    """
+
+    try:
+        with open(path) as file_obj:
+            config = yaml.load(file_obj, Loader=yaml.FullLoader)
+        return nested_dict_to_namespace(config)
+    except Exception:
+        raise Exception('Failed to load config file from: {}.'.format(path))
 
 def mode(arr: np.array, axis=1):
     '''
@@ -74,7 +123,13 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
 
     return windows.squeeze()
 
-def instantaneous_powerbands(eeg, fs):
+def instantaneous_powerbands(eeg, fs, bands):
+
+    logging.info(f'Filtering data | fs={fs}, bands:', bands)
+
+    if eeg.dtype is not (required_type := 'float64'):
+        eeg = eeg.astype(required_type)
+
     hilbert3 = lambda x: scipy.signal.hilbert(x, fftpack.next_fast_len(len(x)), 
                                               axis=0)[:len(x)]
 
@@ -83,24 +138,17 @@ def instantaneous_powerbands(eeg, fs):
     eeg -= eeg.mean(axis=0)
     eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
 
-    # delta = filter_data(eeg.T, sfreq=fs, l_freq=2, h_freq=4).T
-    theta = filter_data(eeg.T, sfreq=fs, l_freq=4, h_freq=8).T
-    alpha = filter_data(eeg.T, sfreq=fs, l_freq=8, h_freq=12).T
-    beta = filter_data(eeg.T, sfreq=fs, l_freq=12, h_freq=30).T
-    gamma = filter_data(eeg.T, sfreq=fs, l_freq=30, h_freq=55).T
-    high_gamma = filter_data(eeg.T, sfreq=fs, l_freq=55, h_freq=90).T
-    bb_gamma = filter_data(eeg.T, sfreq=fs, l_freq=90, h_freq=170).T
+    filtered = np.concatenate([filter_data(eeg.T, sfreq=fs,
+                                           l_freq=f[0], h_freq=f[1]).T \
+                               for band, f in bands.items()], axis=1)
 
-    bands = np.concatenate([
-                            # delta,
-                            # theta,
-                            alpha,
-                            beta,
-                            # gamma,
-                            high_gamma,
-                            # bb_gamma
-                            ],
-                           axis=1) 
-    bands = abs(hilbert3(bands))
+    return abs(hilbert3(filtered))
 
-    return bands
+if __name__=='__main__':
+
+    conf = load_yaml('config.yml')
+
+    d = nested_namespace_to_dict(conf)
+    
+    print('')
+
