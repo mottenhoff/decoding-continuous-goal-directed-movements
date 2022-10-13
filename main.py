@@ -17,7 +17,6 @@ from datetime import datetime as dt
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 import learner
 from libs import checks
 from libs import prepare
@@ -27,17 +26,17 @@ from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
 from figures import all_figures
 
-conf = utils.load_yaml('./config.yml')
+c = utils.load_yaml('./config.yml')
 
 def setup():
-    main_path = Path(conf.save_path)
+    main_path = Path(c.learn.save_path)
     today = dt.today().strftime('%Y%m%d_%H%M')
     path = main_path/today
     path.mkdir(parents=True, exist_ok=True)
     
     log_filename = f'output.log'
     logging.basicConfig(format='%(levelname)s: %(message)s',
-                        level=logging.INFO if not conf.debug_log else logging.DEBUG,
+                        level=logging.INFO if not c.debug_log else logging.DEBUG,
                         handlers=[
                             logging.FileHandler(path/f'{log_filename}'),
                             logging.StreamHandler()])
@@ -52,6 +51,7 @@ def setup_debug(eeg, xyz):
     timeshift = 3 # sample
     dims = 2
     n = 10000
+    n = eeg['data'].shape[0]
     some_random_matrix = np.array([[ 0.46257236, -0.35283946,  0.06892439],
                                    [-0.44375285, -0.40580064,  1.15588792]])
 
@@ -69,29 +69,33 @@ def setup_debug(eeg, xyz):
 def go():
     save_path = setup()
     data_path = Path('./data/kh036/')
+    data_path = Path('./data/kh040/')
 
-    n_sets = 3 if conf.combine else 1
+    filenames = [p for p in data_path.glob('*.xdf')]
+    
+    if not c.combine:
+    # if True:
+        filenames = [filenames[0]]
+    # n_sets = 3 if c.combine else 1 # TODO: get dynamical
 
     datasets = []
-    for i in range(n_sets):
-        filename = f'bubbles_{i+1}.xdf'
-
+    for filename in filenames:
         logging.info(f'Loaded {filename}')
 
-        eeg, xyz, trials = load_leap(data_path/filename)
+        eeg, xyz, trials = load_leap(filename) #data_path/filename)
 
-        if conf.debug:
+        if c.debug:
             eeg, xyz = setup_debug(eeg, xyz)
 
-        if conf.checks.trials_vs_cont:
+        if c.checks.trials_vs_cont:
             checks.data_size_trial_vs_continuous(trials, xyz)
 
         datasets += prepare.go(eeg, xyz)
 
     learner.fit(datasets, save_path)
 
-    if conf.figures.make_all:
-        all_figures.make(save_path)
+    # if c.figures.make_all:
+    #     all_figures.make(save_path)
 
 if __name__=='__main__':
     go()

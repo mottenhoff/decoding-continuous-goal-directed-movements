@@ -10,10 +10,18 @@ def read_xdf(path):
         # Info
         result[stream_name]['fs'] = float(stream['info']['nominal_srate'][0])
         result[stream_name]['type'] = stream['info']['type'][0].lower()
-        result[stream_name]['first_ts'] = float(stream['footer']['info']['first_timestamp'][0])
-        result[stream_name]['last_ts'] = float(stream['footer']['info']['last_timestamp'][0])
-        result[stream_name]['total_stream_time'] = result[stream_name]['last_ts'] - result[stream_name]['first_ts']
-        result[stream_name]['sample_count'] = int(stream['footer']['info']['sample_count'][0])
+
+        if 'footer' in stream:
+            result[stream_name]['first_ts'] = float(stream['footer']['info']['first_timestamp'][0])
+            result[stream_name]['last_ts'] = float(stream['footer']['info']['last_timestamp'][0])
+            result[stream_name]['total_stream_time'] = result[stream_name]['last_ts'] - result[stream_name]['first_ts']
+            result[stream_name]['sample_count'] = int(stream['footer']['info']['sample_count'][0])
+        else:
+            result[stream_name]['first_ts'] = stream['time_stamps'][0]
+            result[stream_name]['last_ts'] = stream['time_stamps'][-1]
+            result[stream_name]['total_stream_time'] = result[stream_name]['last_ts'] - result[stream_name]['first_ts']
+            result[stream_name]['sample_count'] = stream['time_stamps'].size
+        
         result[stream_name]['data_type'] = stream['info']['channel_format'][0]
         result[stream_name]['hostname'] = stream['info']['hostname'][0]
 

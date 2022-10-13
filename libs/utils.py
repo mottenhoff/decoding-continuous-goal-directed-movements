@@ -125,7 +125,8 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
 
 def instantaneous_powerbands(eeg, fs, bands):
 
-    logging.info(f'Filtering data | fs={fs}, bands:', bands)
+
+    logging.info(f'Filtering data | fs={fs}, bands: {bands.__dict__}')
 
     if eeg.dtype is not (required_type := 'float64'):
         eeg = eeg.astype(required_type)
@@ -140,7 +141,7 @@ def instantaneous_powerbands(eeg, fs, bands):
 
     filtered = np.concatenate([filter_data(eeg.T, sfreq=fs,
                                            l_freq=f[0], h_freq=f[1]).T \
-                               for band, f in bands.items()], axis=1)
+                               for band, f in bands.__dict__.items()], axis=1)
 
     return abs(hilbert3(filtered))
 

@@ -127,6 +127,26 @@ def cut_experiment(stream, cutoff):
 
     return stream
 
+def fix_too_many_trial_starts(start, end):
+
+    # Delete trailing trial_starts
+    start = np.delete(start, np.where(start > end[-1]-1))
+
+    while start.size != end.size:
+        
+        flag = None
+        for i in np.arange(end.size):
+            
+            if start[i+1] < end[i]:
+                flag = i+1
+                break
+        
+        if flag:
+            start = np.delete(start, flag)
+
+    return start
+
+
 def get_trials(leap, events):
     # trials from new_target to target_reached
     t_start_idc = np.array([locate_pos(leap['ts'], nt) for nt in events.target_new[:, 0]])
@@ -134,9 +154,16 @@ def get_trials(leap, events):
 
     # Exp sends one t_start to many, so remove
     t_start_idc = t_start_idc[:-1]
+    trial_nums = np.empty(leap['ts'].shape[0])
+    trial_nums.fill(np.nan)
 
+    # Sometimes t_start_idc are send multiple times,
+    # these should be removed
+    if t_start_idc.size != t_end_idc.size:
+        t_start_idc = fix_too_many_trial_starts(t_start_idc, t_end_idc)
+    
     # Align with leap
-    trial_nums = np.zeros(leap['ts'].shape[0])
+    # trial_nums = np.zeros(leap['ts'].shape[0])
     for i, (s, e) in enumerate(zip(t_start_idc, t_end_idc)):
         trial_nums[s:e] = i
 

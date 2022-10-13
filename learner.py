@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -12,12 +13,13 @@ import libs.utils
 from libs import checks
 from libs.feature_selection.forward_feature_selection import forward_feature_selection
 from libs.feature_selection.kbest import select_k_best
+from figures import all_figures
 
-conf = libs.utils.load_yaml('./config.yml')
+c = libs.utils.load_yaml('./config.yml')
 rs = RandomState(MT19937(SeedSequence(62277783366)))
 
 def save(path, **kwargs):
-
+    config = deepcopy(c)
     for name, value in kwargs.items():
         
         # Saves only numpy objects
@@ -25,18 +27,49 @@ def save(path, **kwargs):
             np.save(f, value)
     
     with open(path/'config.yml', 'w') as f:
-        yaml.dump(libs.utils.nested_namespace_to_dict(conf), f)
+        yaml.dump(libs.utils.nested_namespace_to_dict(config), f)
 
     logging.info(f'Saved to {path}')
 
 def select_features(n_dims, n_folds, y, z, nx, n1, i):
 
-    if conf.greedy_forward: return forward_feature_selection(n_dims, n_folds, y, z, nx, n1, i)
-    if conf.kbest:          return select_k_best(y, z, n_dims)
-    if conf.random:         return np.random.randint(0, y.shape[1], n_dims)
+    if c.learn.fs.greedy_forward: return forward_feature_selection(n_dims, n_folds, y, z, nx, n1, i)
+    if c.learn.fs.kbest:          return select_k_best(y, z, n_dims)
+    if c.learn.fs.random:         return np.random.randint(0, y.shape[1], n_dims)
 
     logging.warning("Feature selection is enabled, but no method is selected. Using all features.")
     return np.arange(y.shape[1])
+
+def select_valid_datasets(datasets, i, k):
+    '''Checks if dataset is large enough to be included in
+       the learning
+
+        hard limitations: 
+            H1: A dataset should contain at least 2*i + 1 samples
+                This allows PSID to look back and forth exactly 
+                1 time
+        
+        Soft limitation
+            S1: Smaller datasets introduce more noise when a horizon
+                crossed the gap.
+    ''' 
+
+    selected = []
+    for d in datasets:
+
+        n_samples = d.eeg.shape[0]
+        min_sample_size = 2*i+1
+
+        if n_samples < min_sample_size:
+            continue
+        
+        # Set k to None to skip
+        if k and n_samples < k*min_sample_size:
+            continue
+
+        selected += [d]
+    
+    return selected
 
 
 def sanity_check(datasets):
@@ -67,6 +100,54 @@ def sanity_check(datasets):
 
     return 0
 
+def fit_and_score(z, y, nx, n1, i, save_path):
+
+    n_samples =        c.learn.cv.n_repeats
+    n_dims =           c.learn.fs.n_dims      if c.learn.fs.dim_reduction else y.shape[1]
+    n_folds =          c.learn.cv.outer_folds
+    n_inner_folds =    c.learn.cv.inner_folds
+
+    results =                np.empty((n_samples, n_folds,    4, 3))   #  4 measures per channel
+    trajectories =           np.empty((n_samples, y.shape[0], 3))      #  Z
+    neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
+    latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
+
+    logging.info(f'''Input for learning: 
+                        z={z.shape} | y={y.shape} | n_dims={n_dims}
+                        nx={nx} | n1={n1} | i={i}''')
+    for j in range(n_samples):
+        
+        folds = np.array_split(np.arange(y.shape[0]), n_folds)
+        for idx, fold in enumerate(folds):
+
+            y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
+            z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
+
+            features = select_features(n_dims, n_inner_folds, y, z, nx, n1, i) \
+                       if c.learn.fs.dim_reduction else np.arange(y.shape[1])
+
+            y_test, y_train = y_test[:, features], y_train[:, features]
+
+            id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
+            logging.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
+            zh, yh, xh = id_sys.predict(y_test)
+
+            metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
+            logging.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
+            # logging.info(metrics)
+            results[j, idx, :, :] =              metrics
+            trajectories[j, fold, :] =           zh
+            neural_reconstructions[j, fold, :] = yh
+            latent_states[j, fold, :] =          xh
+
+    if c.learn.save:
+        save(save_path,
+             metrics=results,
+             trajectories=trajectories,
+             neural_reconstructions=neural_reconstructions,
+             latent_states=latent_states,
+             z=z,
+             y=y)
 
 def fit(datasets, save_path):
     '''
@@ -84,62 +165,50 @@ def fit(datasets, save_path):
     n_inner_folds: Hyperparameter optimization
     '''
 
-    sanity_check(datasets)
+    # sanity_check(datasets)
 
-    if conf.checks.concat_datasets:
+    nx, n1, i = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
+
+    if not c.debug:
+        datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
+    
+    if c.checks.concat_datasets:
         checks.concatenate_vs_separate_datasets(datasets)
 
     # TODO: If going for separate sets, the code needs updating
     y = np.vstack([s.eeg for s in datasets])
     z = np.vstack([s.xyz for s in datasets])
 
-    nx, n1, i = conf.psid.nx, conf.psid.n1, conf.psid.i
-    nx, n1, i = nx[0], n1[0], i[0] # For now
-    # opts = list(itertools.product(nx, n1, [i]))
+    horizons =   [10, 25, 50, 100]
+    relevant =   [10, 25, 50, 100]
+    # irrelevant = []
+    
+    for i in horizons:
+    
+        for n1 in relevant:
 
-    n_samples =        conf.n_random_samples if conf.random_feature_sampling else 1
-    n_dims =           conf.n_dims           if conf.feature_selection       else y.shape[1]
-    n_folds =          conf.cv.outer_folds
-    n_inner_folds =    conf.cv.inner_folds
+            irrelevant = [n1]
+            for nx in irrelevant:
 
-    results =                np.empty((n_samples, n_folds,    4, 3))   #  4 measures per channel
-    trajectories =           np.empty((n_samples, y.shape[0], 3))      #  Z
-    neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
-    latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
+                if (nx < n1) or (n1 > i*3):
+                    continue
+                
+                path = save_path/f'{nx}_{n1}_{i}'
+                path.mkdir()
+                
+                try:
+                    fit_and_score(z, y, nx, n1, i, path)
 
-    for j in range(n_samples):
-        
-        folds = np.array_split(np.arange(y.shape[0]), n_folds)
-        for idx, fold in enumerate(folds):
+                    if c.figures.make_all:
+                        all_figures.make(path)
 
-            y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
-            z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
+                except Exception as e:
+                    logging.error(e)
+                
 
-            features = select_features(n_dims, n_inner_folds, y, z, nx, n1, i) \
-                       if conf.feature_selection else np.arange(y.shape[1])
+                    
 
-            y_test, y_train = y_test[:, features], y_train[:, features]
 
-            id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
-            logging.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
-            zh, yh, xh = id_sys.predict(y_test)
-
-            metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
-            logging.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
-            # logging.info(metrics)
-            results[j, idx, :, :] =              metrics
-            trajectories[j, fold, :] =           zh
-            neural_reconstructions[j, fold, :] = yh
-            latent_states[j, fold, :] =          xh
-
-    if conf.save:
-        save(save_path,
-             metrics=results,
-             trajectories=trajectories,
-             neural_reconstructions=neural_reconstructions,
-             latent_states=latent_states,
-             z=z,
-             y=y)
 
 
 

@@ -11,7 +11,7 @@ from libs.preprocessing import remove_irrelevant_channels
 START = 0
 END = 1
 
-conf = utils.load_yaml('./config.yml')
+c = utils.load_yaml('./config.yml')
 
 @dataclass
 class Subset:
@@ -48,7 +48,7 @@ def fill_missing_values(xyz):
 
     return list of subsets + the corresponding idc
     '''
-    n = conf.missing_values.xyz_samples_for_gaps
+    n = c.missing_values.xyz_samples_for_gaps
 
     idc = np.where(~np.isnan(xyz[:, 0]))[0]
     diff = np.diff(idc)
@@ -93,8 +93,9 @@ def list_to_dataclass(eeg, xyzs):
 def go(eeg, xyz):
     eeg['data'], eeg['channel_names'] = remove_irrelevant_channels(eeg['data'], eeg['channel_names'])
 
-    # TODO: Save order of powerbands somewhere (incl channels?)
-    # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], conf.bands)
+    if not c.debug:
+        # TODO: Save order of powerbands somewhere (incl channels?)
+        eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands)
     
     xyz_subsets = fill_missing_values(xyz)  # Return subsets
     subsets = list_to_dataclass(eeg, xyz_subsets)
@@ -102,12 +103,12 @@ def go(eeg, xyz):
     
     # Check if there is enough data to create min_windows
     min_windows = 1  # TODO: move to config
-    n_samples = min_windows*conf.window.length/1000*eeg['fs']
+    n_samples = min_windows*c.window.length/1000*eeg['fs']
     subsets = [s for s in subsets if s.eeg.shape[0] > n_samples]
 
     for subset in subsets:
 
-        if conf.debug:
+        if c.debug:
             # Select only the first 30 channels
             n = 30
             logging.debug(f'Reducing amount of features to {n}')
@@ -119,8 +120,8 @@ def go(eeg, xyz):
                                     subset.eeg, 
                                     subset.xyz,
                                     subset.ts,
-                                    conf.window.length,
-                                    conf.window.shift,
+                                    c.window.length,
+                                    c.window.shift,
                                     subset.fs)
 
     # if conf['velocity']:

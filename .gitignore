@@ -1,9 +1,10 @@
 .vscode
 data/
+results/
 _archive/*
 nohup.out
 figures/*.png
-
+*.png
 
 *.zip
 
