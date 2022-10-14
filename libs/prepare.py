@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from libs import utils
-from libs.preprocessing import remove_irrelevant_channels
+from libs.data_cleaning import cleanup
 
 START = 0
 END = 1
@@ -91,7 +91,12 @@ def list_to_dataclass(eeg, xyzs):
     return subsets
 
 def go(eeg, xyz):
-    eeg['data'], eeg['channel_names'] = remove_irrelevant_channels(eeg['data'], eeg['channel_names'])
+
+    chs_to_remove = cleanup(eeg['data'], eeg['channel_names'], eeg['ts'], eeg['fs'])
+    eeg['data'] = np.delete(eeg['data'], chs_to_remove, axis=1)
+    eeg['channel_names'] = np.delete(eeg['channel_names'], chs_to_remove)
+
+    logging.info(f'Removed {chs_to_remove.size} channels')
 
     if not c.debug:
         # TODO: Save order of powerbands somewhere (incl channels?)
