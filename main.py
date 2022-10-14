@@ -101,3 +101,11 @@ if __name__=='__main__':
     go()
 
 
+
+
+# Strong channel removal
+# Select only beta
+# Task correlations
+# inlude hands
+# Input dimensions to 30
+
