@@ -2,10 +2,12 @@
 data/
 results/
 _archive/*
-nohup.out
 figures/*.png
-*.png
+figures/*.svg
+docs/
 
+nohup.out
+*.png
 *.zip
 
 # Byte-compiled / optimized / DLL files
