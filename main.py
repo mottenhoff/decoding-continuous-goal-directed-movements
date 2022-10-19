@@ -24,6 +24,7 @@ from libs import data_cleaning
 from libs import utils
 from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
+from libs.data_cleaning import cleanup
 from figures import all_figures
 
 c = utils.load_yaml('./config.yml')
@@ -69,16 +70,15 @@ def setup_debug(eeg, xyz):
 def go():
     save_path = setup()
     data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh040/')
+    data_path = Path('./data/kh041/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
     if not c.combine:
-    # if True:
         filenames = [filenames[0]]
-    # n_sets = 3 if c.combine else 1 # TODO: get dynamical
 
     datasets = []
+    chs_to_remove = np.array([], dtype=np.int16)
     for filename in filenames:
         logging.info(f'Loaded {filename}')
 
@@ -90,7 +90,16 @@ def go():
         if c.checks.trials_vs_cont:
             checks.data_size_trial_vs_continuous(trials, xyz)
 
+        chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
+                                                          eeg['ts'], eeg['fs']))
         datasets += prepare.go(eeg, xyz)
+
+    chs_to_remove = np.unique(chs_to_remove)
+    for ds in datasets:
+        ds.eeg = np.delete(ds.eeg, chs_to_remove, axis=1)
+        ds.channels = np.delete(ds.channels, chs_to_remove)
+    
+    logging.info(f'Removed {chs_to_remove.size} channels')
 
     learner.fit(datasets, save_path)
 

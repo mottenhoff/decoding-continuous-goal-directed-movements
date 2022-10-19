@@ -2,12 +2,14 @@ import datetime as dt
 import logging
 from copy import deepcopy
 from pathlib import Path
+from itertools import product
 
 import numpy as np
 import PSID
 import yaml
 from numpy.random import MT19937, RandomState, SeedSequence
 from PSID.evaluation import evalPrediction as eval_prediction
+from sklearn.linear_model import LinearRegression
 
 import libs.utils
 from libs import checks
@@ -35,6 +37,7 @@ def select_features(n_dims, n_folds, y, z, nx, n1, i):
 
     if c.learn.fs.greedy_forward: return forward_feature_selection(n_dims, n_folds, y, z, nx, n1, i)
     if c.learn.fs.kbest:          return select_k_best(y, z, n_dims)
+    # if c.learn.fs.task_corr:      return select_highest_correlation(y, z, n_dims)
     if c.learn.fs.random:         return np.random.randint(0, y.shape[1], n_dims)
 
     logging.warning("Feature selection is enabled, but no method is selected. Using all features.")
@@ -117,11 +120,20 @@ def fit_and_score(z, y, nx, n1, i, save_path):
                         nx={nx} | n1={n1} | i={i}''')
     for j in range(n_samples):
         
-        folds = np.array_split(np.arange(y.shape[0]), n_folds)
+        folds = np.array_split(np.arange(y.shape[0]), n_folds)git
         for idx, fold in enumerate(folds):
 
             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
             z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
+
+
+            print('LR: ', end='')
+            for idim in np.arange(z_train.shape[1]):
+                lr = LinearRegression() 
+                lr = lr.fit(y_train, z_train[:, idim])
+                r = lr.score(y_test, z_test[:, idim])
+                print(f' {r:.2f}', end='')
+            print('\n')
 
             features = select_features(n_dims, n_inner_folds, y, z, nx, n1, i) \
                        if c.learn.fs.dim_reduction else np.arange(y.shape[1])
@@ -166,52 +178,35 @@ def fit(datasets, save_path):
     '''
 
     # sanity_check(datasets)
-
-    nx, n1, i = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
-
-    if not c.debug:
-        datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
+    n_z = datasets[0].xyz.shape[1]
     
+    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
+
+    n_states = relevant if not n_states else n_states
+
     if c.checks.concat_datasets:
         checks.concatenate_vs_separate_datasets(datasets)
 
-    # TODO: If going for separate sets, the code needs updating
-    y = np.vstack([s.eeg for s in datasets])
-    z = np.vstack([s.xyz for s in datasets])
+    for nx, n1, i in product(n_states, relevant, horizons):
 
-    horizons =   [10, 25, 50, 100]
-    relevant =   [10, 25, 50, 100]
-    # irrelevant = []
-    
-    for i in horizons:
-    
-        for n1 in relevant:
+        if (nx < n1) or (n1 > i*n_z):
+            continue
+        
+        if not c.debug:    
+            # TODO: If going for separate sets, the code needs updating
+            datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
 
-            irrelevant = [n1]
-            for nx in irrelevant:
+        y = np.vstack([s.eeg for s in datasets])
+        z = np.vstack([s.xyz for s in datasets])
 
-                if (nx < n1) or (n1 > i*3):
-                    continue
-                
-                path = save_path/f'{nx}_{n1}_{i}'
-                path.mkdir()
-                
-                try:
-                    fit_and_score(z, y, nx, n1, i, path)
+        path = save_path/f'{nx}_{n1}_{i}'
+        path.mkdir()
+        
+        try:
+            fit_and_score(z, y, nx, n1, i, path)
 
-                    if c.figures.make_all:
-                        all_figures.make(path)
+            if c.figures.make_all:
+                all_figures.make(path)
 
-                except Exception as e:
-                    logging.error(e)
-                
-
-                    
-
-
-
-
-
-
-
-
+        except Exception as e:
+            logging.error(e)

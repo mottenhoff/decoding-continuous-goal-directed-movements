@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from libs import utils
-from libs.data_cleaning import cleanup
+
 
 START = 0
 END = 1
@@ -92,11 +92,7 @@ def list_to_dataclass(eeg, xyzs):
 
 def go(eeg, xyz):
 
-    chs_to_remove = cleanup(eeg['data'], eeg['channel_names'], eeg['ts'], eeg['fs'])
-    eeg['data'] = np.delete(eeg['data'], chs_to_remove, axis=1)
-    eeg['channel_names'] = np.delete(eeg['channel_names'], chs_to_remove)
 
-    logging.info(f'Removed {chs_to_remove.size} channels')
 
     if not c.debug:
         # TODO: Save order of powerbands somewhere (incl channels?)
@@ -105,9 +101,8 @@ def go(eeg, xyz):
     xyz_subsets = fill_missing_values(xyz)  # Return subsets
     subsets = list_to_dataclass(eeg, xyz_subsets)
 
-    
     # Check if there is enough data to create min_windows
-    min_windows = 1  # TODO: move to config
+    min_windows = 2  # TODO: move to config
     n_samples = min_windows*c.window.length/1000*eeg['fs']
     subsets = [s for s in subsets if s.eeg.shape[0] > n_samples]
 

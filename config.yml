@@ -9,9 +9,9 @@ learn:
   save_path: ./results/
 
   psid:
-    i: 10
-    n1: 50
-    nx: 50
+    i: [50]
+    n1: [10]
+    nx: []
 
   data:
     min_n_windows: 5
@@ -23,8 +23,8 @@ learn:
     n_repeats: 1
   
   fs:
-    dim_reduction: False
-    n_dims: 50
+    dim_reduction: 1
+    n_dims: 30
     greedy_forward: 0
     kbest: 1
     random: false
@@ -43,17 +43,15 @@ plot: 1
 
 # Preprocessing
 bands:
-  hfo:
-  - 52
-  - 200
-  lfo:
-  - 2
-  - 48
-  uhfo:
-  - 200
-  - 500
+  beta:
+  - 12
+  - 30
+  hg:
+  - 55
+  - 90
+  
 window:
-  length: 300
+  length: 500
   shift: 50
 
 random: 0
