@@ -11,6 +11,10 @@ PSID tutorial: https://github.com/ShanechiLab/PyPSID/blob/main/source/PSID/examp
 '''
 
 import logging
+import cProfile
+import pstats
+import io
+
 from pathlib import Path
 from datetime import datetime as dt
 
@@ -67,8 +71,7 @@ def setup_debug(eeg, xyz):
 
     return eeg, xyz
 
-def go():
-    save_path = setup()
+def go(save_path):
     data_path = Path('./data/kh036/')
     data_path = Path('./data/kh041/')
 
@@ -106,8 +109,25 @@ def go():
     # if c.figures.make_all:
     #     all_figures.make(save_path)
 
+def main():
+
+    save_path = setup()
+
+    with cProfile.Profile() as pr:
+        go(save_path)
+    
+    s = io.StringIO()
+    stats = pstats.Stats(pr, stream=s)
+    stats.dump_stats(f'{save_path}/profile.prof')
+
+    with open(f'{save_path}/profile.txt', 'w') as f:
+        ps = pstats.Stats(f'{save_path}/profile.prof', stream=f)
+        ps.sort_stats(pstats.SortKey.TIME)
+        ps.print_stats()
+
+
 if __name__=='__main__':
-    go()
+    main()
 
 
 

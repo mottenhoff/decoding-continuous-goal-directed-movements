@@ -120,7 +120,7 @@ def fit_and_score(z, y, nx, n1, i, save_path):
                         nx={nx} | n1={n1} | i={i}''')
     for j in range(n_samples):
         
-        folds = np.array_split(np.arange(y.shape[0]), n_folds)git
+        folds = np.array_split(np.arange(y.shape[0]), n_folds)
         for idx, fold in enumerate(folds):
 
             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
