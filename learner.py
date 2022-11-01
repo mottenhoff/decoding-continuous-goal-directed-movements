@@ -109,9 +109,10 @@ def fit_and_score(z, y, nx, n1, i, save_path):
     n_dims =           c.learn.fs.n_dims      if c.learn.fs.dim_reduction else y.shape[1]
     n_folds =          c.learn.cv.outer_folds
     n_inner_folds =    c.learn.cv.inner_folds
+    z_dims = z.shape[1]
 
-    results =                np.empty((n_samples, n_folds,    4, 3))   #  4 measures per channel
-    trajectories =           np.empty((n_samples, y.shape[0], 3))      #  Z
+    results =                np.empty((n_samples, n_folds,    4, z_dims))   #  4 measures per channel
+    trajectories =           np.empty((n_samples, y.shape[0], z_dims))      #  Z
     neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
     latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
 
@@ -202,11 +203,11 @@ def fit(datasets, save_path):
         path = save_path/f'{nx}_{n1}_{i}'
         path.mkdir()
         
+        fit_and_score(z, y, nx, n1, i, path)
+        all_figures.make(path)
         try:
-            fit_and_score(z, y, nx, n1, i, path)
 
             if c.figures.make_all:
-                all_figures.make(path)
-
+                pass
         except Exception as e:
             logging.error(e)

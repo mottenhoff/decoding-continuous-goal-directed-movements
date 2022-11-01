@@ -23,8 +23,9 @@ import numpy as np
 
 import learner
 from libs import checks
-from libs import prepare
 from libs import data_cleaning
+from libs import prepare
+from libs import timeshift
 from libs import utils
 from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
@@ -73,12 +74,12 @@ def setup_debug(eeg, xyz):
 
 def go(save_path):
     data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh041/')
+    data_path = Path('./data/kh040/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
     if not c.combine:
-        filenames = [filenames[0]]
+        filenames = [filenames[1]]
 
     datasets = []
     chs_to_remove = np.array([], dtype=np.int16)
@@ -88,10 +89,18 @@ def go(save_path):
         eeg, xyz, trials = load_leap(filename) #data_path/filename)
 
         if c.debug:
-            eeg, xyz = setup_debug(eeg, xyz)
+            if c.debug_dummy_data:
+                eeg, xyz = setup_debug(eeg, xyz)
+            
+            if c.debug_short:
+                eeg['data'] = eeg['data'][:20000, :]
+                eeg['ts'] = eeg['ts'][:20000]
+                xyz = xyz[:20000, :]
 
         if c.checks.trials_vs_cont:
             checks.data_size_trial_vs_continuous(trials, xyz)
+
+        eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)
 
         chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
                                                           eeg['ts'], eeg['fs']))

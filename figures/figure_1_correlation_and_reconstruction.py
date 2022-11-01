@@ -13,7 +13,7 @@ except Exception:
     conf = utils.load_yaml('./config.yml')
 
 
-DIMS = ['X', 'Y', 'Z']
+DIMS = np.array(['X', 'Y', 'Z'])
 COLORS = dict(zip(DIMS, ['r', 'g', 'b']))
 
 TOP_HEIGHT = 1
@@ -39,7 +39,9 @@ def overview_top(fig, grid, m):
     for i, score in enumerate(['CC', 'R2', 'MSE', 'RMSE']):
         ax = fig.add_subplot(grid[:TOP_HEIGHT, i])
 
-        ax.errorbar(x=[0, 1, 2], y=mean[0, i, :], yerr=std[0, i, :],
+        xticks = np.arange(mean.shape[2])
+
+        ax.errorbar(x=xticks, y=mean[0, i, :], yerr=std[0, i, :],
                     fmt = 'o', markersize=2, capsize=2, color='r' )  # TODO: Color xyz differently
         ax.axhline(0, linestyle='--', c='k', linewidth=1)
 
@@ -54,8 +56,8 @@ def overview_top(fig, grid, m):
         
         ax.set_xlim(-1, 3)
         ax.set_ylim(y_min, y_max)
-        ax.set_xticks([0, 1, 2])
-        ax.set_xticklabels(DIMS)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(DIMS[xticks])
         ax.set_title(f'{score} | {mean[0, i, :].mean():.1f}\u00B1{mean[0, i, :].std():.1f}')
 
         y_min = -1.1 if score in ['CC', 'R2'] else 0
@@ -83,10 +85,13 @@ def overview_middle(fig, grid, m, z, zh):
     return fig, grid
 
 def overview_bottom(fig, grid, z, zh):
-            
-    z_hat = zh.squeeze()    
+    
 
-    for i, dim in enumerate(DIMS):
+    z_hat = zh.squeeze()
+    if z_hat.ndim == 1:
+        z_hat = z_hat[:, np.newaxis]
+
+    for i, dim in enumerate(DIMS[:z.shape[1]]):
         ax = fig.add_subplot(grid[TOP_HEIGHT+MIDDLE_HEIGHT+i, :])
         ax.plot(z_hat[:, i])
         ax.plot(z[:, i])
@@ -103,7 +108,8 @@ def overview(m, z, y, zh, yh, xh, path):
     grid = GridSpec(TOP_HEIGHT+MIDDLE_HEIGHT+BOTTOM_HEIGHT, 4)
 
     fig, grid = overview_top(fig, grid, m)
-    fig, grid = overview_middle(fig, grid, m, z, zh)
+    if z.shape[1] > 1:
+        fig, grid = overview_middle(fig, grid, m, z, zh)
     fig, grid = overview_bottom(fig, grid, z, zh)
 
     plt.tight_layout()

@@ -1,7 +1,7 @@
 checks:
   concat_datasets: 0
   trials_vs_cont: 0
-combine: 1
+combine: 0
 
 learn:
 
@@ -30,6 +30,9 @@ learn:
     random: false
     
 debug: 0
+debug_short: 1
+debug_dummy_data: 0
+debug_reduce_channels: 0  # broken
 debug_log: 0
 
 figures:
@@ -43,18 +46,21 @@ plot: 1
 
 # Preprocessing
 bands:
-  beta:
-  - 12
-  - 30
-  hg:
-  - 55
-  - 90
-  
+  lfc:
+    - 0.1
+    - 5
 window:
-  length: 500
+  length: 300
   shift: 50
 
 random: 0
 save: 1
 
-velocity: 0
+# Hand kinematics
+pos: 0
+vel: 0
+speed: 1
+
+complete_model: 0
+
+timeshift: 0  # ms

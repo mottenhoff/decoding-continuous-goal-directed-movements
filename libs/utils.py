@@ -100,7 +100,13 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
     ----------
     arr: 3d np.array[windows x samples_per_window x channels]
          windowed data
+
+    # TODO: retu
+
     '''
+
+
+
 
     # Because ts is in seconds. This saves multiplications
     #     Also, multiplication is many times quicker than

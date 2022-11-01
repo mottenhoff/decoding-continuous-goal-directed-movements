@@ -25,6 +25,9 @@ def get_windows(eeg, xyz, ts, wl, ws, fs):
     eeg = utils.window(eeg, ts, wl, ws, fs).mean(axis=1)
     xyz = utils.window(xyz, ts, wl, ws, fs).mean(axis=1)
 
+    if xyz.ndim == 1:
+        xyz = xyz[:, np.newaxis]
+
     return eeg, xyz
 
 def fill_missing_values(xyz):
@@ -108,8 +111,9 @@ def go(eeg, xyz):
 
     for subset in subsets:
 
-        if c.debug:
+        if c.debug_reduce_channels:
             # Select only the first 30 channels
+            # TODO: also remove channel_names
             n = 30
             logging.debug(f'Reducing amount of features to {n}')
             subset.eeg = subset.eeg[:, :n]

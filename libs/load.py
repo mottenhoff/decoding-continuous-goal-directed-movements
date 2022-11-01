@@ -9,7 +9,17 @@ import numpy as np
 
 from libs.read_xdf import read_xdf
 from libs import plotting
+from libs import utils
+from libs import kinematics as kin
 
+c = utils.load_yaml('./config.yml')
+
+LEAP_COMPLETE_HAND_XYZ_IDC = [7, 8, 9,
+                              11, 12, 13,
+                              15, 16, 17,
+                              19, 20, 21,
+                              23, 24, 25,
+                              27, 28, 29]
 PLOT = True
 
 @dataclass
@@ -181,6 +191,33 @@ def get_trials(leap, events):
     
     return trial_nums
 
+def get_kinematics(xyz, ts):
+    # TODO: What to do with full model.
+
+    kinematics = np.empty((xyz.shape[0], 0))
+
+    if c.pos:
+        kinematics = np.hstack((kinematics, xyz))
+    
+    if c.vel or c.speed:
+        v = kin.velocity(xyz)
+        v = np.vstack((np.zeros((1, xyz.shape[1])), v))  # Not necessary if aligned later.
+    
+    if c.vel:    
+        kinematics = np.hstack((kinematics, v))
+
+    if c.speed:
+
+        if c.complete_model:
+            points = np.arange(len(LEAP_COMPLETE_HAND_XYZ_IDC)).reshape(-1, 3)
+        else:
+            points = [[0, 1, 2]]
+
+        s = np.vstack([kin.vector_length(v[:, point]) for point in points]).T
+        kinematics = np.hstack((kinematics, s))
+
+    return kinematics
+
 def ts_to_idx(ts_target, ts):
     return np.array([locate_pos(ts_target, t) for t in ts])
 
@@ -214,12 +251,24 @@ def align_matrices_with_diff_fs(l, ts_l, s, ts_s):
     # return np.hstack((l, s_ext)), idc
 
 def leap_to_bubble_space(xyz, fn_t):
-
-    x = fn_t['xt'](xyz[:, 0])
-    y = fn_t['yt'](xyz[:, 1])
-    z = fn_t['zt'](xyz[:, 2])
+    '''
+    new order: palm_x, thumb_x, .. , pinky_x, palm_y, etc
+    '''
     
-    return np.vstack([x, y, z]).T
+    points = np.reshape(LEAP_COMPLETE_HAND_XYZ_IDC, (-1, 3))
+
+    if c.complete_model:
+        ix, iy, iz = points[:, 0], points[:, 1], points[:, 2]
+    else:
+        ix, iy, iz = points[0, :]
+
+    x = fn_t['xt'](xyz[:, ix])
+    y = fn_t['yt'](xyz[:, iy])
+    z = fn_t['zt'](xyz[:, iz])
+    
+    xyz = np.hstack([x, y, z]) if c.complete_model else np.vstack([x, y, z]).T
+    
+    return xyz
 
 def go(path):
        
@@ -237,13 +286,18 @@ def go(path):
 
     events, trials = align(leap, events)
 
-    xyz = leap_to_bubble_space(leap['data'][:, 7:10], fn_t)
+    # Also selects the hand model to use
+    xyz = leap_to_bubble_space(leap['data'], fn_t)        
     xyz_ts = leap['ts']
+    
+    # TODO: Implement kinematics
+    xyz = get_kinematics(xyz, xyz_ts)
 
     xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                            xyz, xyz_ts)
     trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                               trials, xyz_ts)
+
 
     return eeg, xyz, trials
 
