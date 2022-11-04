@@ -4,11 +4,15 @@ results/
 _archive/*
 figures/*.png
 figures/*.svg
+figures/checks/*
+
+
 docs/
 
 nohup.out
 *.png
 *.zip
+*.svg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

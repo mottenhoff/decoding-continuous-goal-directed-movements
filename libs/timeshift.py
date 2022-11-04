@@ -14,5 +14,8 @@ def shift(eeg, xyz, t=0):
     eeg['data'] = eeg['data'][:-shift_idx, :]
     eeg['ts'] = eeg['ts'][:-shift_idx]
     xyz = xyz[shift_idx:, :]
+
+    # TODO: if eeg is larger, then xyz doesnt need to be shortened. 
+    #       but then the timeshift should be performed before cutting the experiment
     
     return eeg, xyz

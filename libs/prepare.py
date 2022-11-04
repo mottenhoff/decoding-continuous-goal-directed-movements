@@ -21,118 +21,92 @@ class Subset:
     fs:  np.array
     channels: np.array
 
-def get_windows(eeg, xyz, ts, wl, ws, fs):
-    eeg = utils.window(eeg, ts, wl, ws, fs).mean(axis=1)
-    xyz = utils.window(xyz, ts, wl, ws, fs).mean(axis=1)
+def get_windows(subset, wl, ws):
+    subset.eeg = utils.window(subset.eeg, subset.ts,
+                              wl, ws, subset.fs)
+    subset.xyz = utils.window(subset.xyz, subset.ts,
+                              wl, ws, subset.fs)
 
-    if xyz.ndim == 1:
-        xyz = xyz[:, np.newaxis]
+    subset.eeg = np.mean(subset.eeg, axis=1)
+    subset.xyz = np.nanmean(subset.xyz, axis=1)
 
-    return eeg, xyz
+    if subset.xyz.ndim == 1:
+        subset.xyz = subset.xyz[:, np.newaxis]
 
-def fill_missing_values(xyz):
-    '''
-    Linearly interpolates the xyz data, unless
-    there is a "large" gap.
+    is_all_nan = np.all(np.isnan(subset.xyz), axis=1)
 
-    "Large" is defined arbitrarily. The larger 
-    the gap, the less the assumption of linear
-    progression holds in the data.
+    subset.eeg = subset.eeg[~is_all_nan, :]
+    subset.xyz = subset.xyz[~is_all_nan, :]
+                    
+    return subset
 
-    Thus this fuction will do:
-    
-    Check for gaps
-    if gap:
-        split data
-    
-    for set in datasets:
-        interpolate(set)
-        strip leading and trailing nans 
+def fill_missing_values(data):
+    return pd.DataFrame(data).interpolate().to_numpy()
 
-    return list of subsets + the corresponding idc
-    '''
+def get_subset_idc(xyz):
+
     n = c.missing_values.xyz_samples_for_gaps
 
-    idc = np.where(~np.isnan(xyz[:, 0]))[0]
+    idc = np.where(~np.isnan(xyz[:, 0]))[0] 
     diff = np.diff(idc)
-    gaps = np.where(diff > n*diff.mean())[0]  # about 100 samples...
-                                              # idx = start of gap
-    logging.info(f'Gaps defined as diff > {n}*diff.mean()')
+    gaps = np.where(diff > n*diff.mean())[0] # about 100 samples...
 
-    # Split into seperate datasets from gap to gap.
-    # if there are not gaps it will select the whole dataset
-    gaps = np.hstack([0, gaps, idc.size-1])
-
-    subsets = []
-    for start_idc, end_idc in zip(gaps[:-1], gaps[1:]):
-        start, end = idc[start_idc], idc[end_idc]
-        subset = xyz[start:end, :]
-        subset = pd.DataFrame(subset).interpolate().to_numpy()
-
-        is_leading_or_trailing_nans = np.all(np.isnan(subset), axis=1)
-        subset = subset[~is_leading_or_trailing_nans, :]
-
-        subsets += [[subset, [start, end]]]
-
-    logging.info(f'Interpolated xyz and removed trailing and leading nans')
-
-    # TODO: check if this is missing a sample at the end
-    return subsets
-
-def list_to_dataclass(eeg, xyzs):
+    gaps = np.hstack((-1, gaps, idc.size-1))
     
-    subsets = []
-    for xyz, idc in xyzs:
-        start, end = idc[START], idc[END]
-        subsets += [Subset(
-            eeg = eeg['data'][start:end, :],
-            xyz = xyz,
-            ts = eeg['ts'][start:end],
-            fs = eeg['fs'],
-            channels = eeg['channel_names'])]
+    subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:])]
 
-    return subsets
+    # Sanity check
+    if True:
+        # Green = Start of gap
+        # Red = End of gap
+        plt.figure()
+        plt.plot(idc, xyz[idc, -1])
+        ylim_max = plt.ylim()[1]
+        for si, ei in subset_idc:
+            plt.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
+            plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
+            plt.savefig(f'./figures/checks/get_subset_idc_{si}_{ei}.svg')
+
+    return subset_idc
 
 def go(eeg, xyz):
 
-
-
     if not c.debug:
-        # TODO: Save order of powerbands somewhere (incl channels?)
         eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands)
-    
-    xyz_subsets = fill_missing_values(xyz)  # Return subsets
-    subsets = list_to_dataclass(eeg, xyz_subsets)
 
-    # Check if there is enough data to create min_windows
-    min_windows = 2  # TODO: move to config
-    n_samples = min_windows*c.window.length/1000*eeg['fs']
-    subsets = [s for s in subsets if s.eeg.shape[0] > n_samples]
+    subset_idc = get_subset_idc(xyz)
 
-    for subset in subsets:
+    subsets = []
+    for s, e in subset_idc:
+        
+        subset = Subset(eeg = eeg['data'][s:e, :],
+                        xyz = xyz[s:e, :],
+                        ts  = eeg['ts'][s:e],
+                        fs  = eeg['fs'],
+                        channels = eeg['channel_names'])
 
-        if c.debug_reduce_channels:
-            # Select only the first 30 channels
-            # TODO: also remove channel_names
-            n = 30
-            logging.debug(f'Reducing amount of features to {n}')
-            subset.eeg = subset.eeg[:, :n]
-            subset.channels = subset.channels[:n]
+        # Fill missing values
+        subset.xyz = fill_missing_values(subset.xyz)
 
-        # are these modified in the list?
-        subset.eeg, subset.xyz = get_windows(
-                                    subset.eeg, 
-                                    subset.xyz,
-                                    subset.ts,
-                                    c.window.length,
-                                    c.window.shift,
-                                    subset.fs)
+        # Window
+        subset = get_windows(subset,
+                             c.window.length,
+                             c.window.shift)
 
-    # if conf['velocity']:
-    #     # TODO: Includes high spikes....
-    #     # move to before splitting into subsets
-
-    #     labels = np.diff(labels, axis=0)
-    #     eeg = eeg[1:, :]
+        subsets.append(subset)
 
     return subsets
+
+
+    # # Check if there is enough data to create min_windows
+    # min_windows = c.missing_values.min_windows_to_incl_set  # TODO rename
+    # n_samples = min_windows*c.window.length/1000*eeg['fs']
+    # subsets = [s for s in subsets if s.eeg.shape[0] > n_samples]
+
+    # if c.debug_reduce_channels:
+    #     # Select only the first 30 channels
+    #     # TODO: also remove channel_names
+    #     n = 30
+    #     logging.debug(f'Reducing amount of features to {n}')
+    #     subset.eeg = subset.eeg[:, :n]
+    #     subset.channels = subset.channels[:n]
