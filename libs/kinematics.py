@@ -1,5 +1,13 @@
 import numpy as np
 
+def get_target_vector(xyz, trials):
+
+    target_vec = trials - xyz
+    
+    
+
+    return target_vec
+
 def cart_to_pol(xyz):
     # Cartesian to polar coordinates
     rho = vector_length(xyz)                            # Length of vector

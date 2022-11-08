@@ -100,7 +100,13 @@ def go(save_path):
             xyz = xyz[:20000, :]
 
         if c.checks.trials_vs_cont:
-            checks.data_size_trial_vs_continuous(trials, xyz)
+            checks.data_size_trial_vs_continuous(trials[:, 0], xyz)
+
+        if c.target_vector:
+            if not c.pos:
+                logger.error(f'Target vector can only be calculated if position is used as target.')
+            
+            eeg['data'] = np.hstack((eeg['data'], trials[:, 1:] - xyz))
 
         eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)
 

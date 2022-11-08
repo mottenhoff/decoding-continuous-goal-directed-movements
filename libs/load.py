@@ -190,7 +190,9 @@ def get_trials(leap, events):
     for i in np.where(d_end_start)[0]:
         trial_nums[t_end_idc[i]] = i
     
-    return trial_nums
+    targets = get_target_per_sample(trial_nums, events.target_reached)
+    trials = np.hstack((np.expand_dims(trial_nums, axis=1), targets))
+    return trials
 
 def get_kinematics(xyz, ts):
     # TODO: What to do with full model.
@@ -218,6 +220,20 @@ def get_kinematics(xyz, ts):
         kinematics = np.hstack((kinematics, s))
 
     return kinematics
+
+def get_target_per_sample(trial_nums, targets):
+    ''' points: 3d cursor coordinates
+        targets: 3d coordinates of target
+        events: 
+    '''
+
+    mask = np.nan_to_num(trial_nums, nan=999)
+    unique, inv = np.unique(mask, return_inverse=True)
+    trial_num_to_target = dict(zip(unique, targets[:, 1:]))
+    trial_num_to_target[999] = np.array([np.nan, np.nan, np.nan])
+    target_per_samp = np.array([trial_num_to_target[x] for x in unique])[inv]
+
+    return target_per_samp
 
 def ts_to_idx(ts_target, ts):
     return np.array([locate_pos(ts_target, t) for t in ts])
@@ -285,13 +301,13 @@ def go(path):
     # Plots
     plotting.plot_effective_framerate(leap['ts'])
 
+    # Trials = [:, [trial_num, target_vec_x, ..._y, ..._z]]
     events, trials = align(leap, events)
 
     # Also selects the hand model to use
     xyz = leap_to_bubble_space(leap['data'], fn_t)        
     xyz_ts = leap['ts']
-    
-    # TODO: Implement kinematics
+
     xyz = get_kinematics(xyz, xyz_ts)
 
     xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
@@ -299,7 +315,7 @@ def go(path):
     trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                               trials, xyz_ts)
 
-    fig_checks.plot_events(leap, events, trials, markers)
+    fig_checks.plot_events(leap, events, trials[:, 0], markers)
 
     return eeg, xyz, trials
 

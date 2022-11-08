@@ -62,10 +62,16 @@ def get_subset_idc(xyz):
     return subset_idc
 
 def go(eeg, xyz):
-
+    
     if not c.debug.go:
+        tv = eeg['data'][:, -3:] if c.target_vector else np.empty((eeg.shape[0], 0))
+        eeg['data'] = eeg['data'][:, :-3] if c.target_vector else eeg['data']
         eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands)
+        eeg['data'] = np.hstack((eeg['data'], tv))
 
+    eeg['data'] = fill_missing_values(eeg['data'])  # This is only for the target vector, eeg itself shouldnt contain any missing values
+    xyz = fill_missing_values(xyz)
+            
     subset_idc = get_subset_idc(xyz)
 
     subsets = []
@@ -77,9 +83,6 @@ def go(eeg, xyz):
                         fs  = eeg['fs'],
                         channels = eeg['channel_names'])
 
-        # Fill missing values
-        subset.xyz = fill_missing_values(subset.xyz)
-
         # Window
         subset = get_windows(subset,
                              c.window.length,
@@ -88,17 +91,3 @@ def go(eeg, xyz):
         subsets.append(subset)
 
     return subsets
-
-
-    # # Check if there is enough data to create min_windows
-    # min_windows = c.missing_values.min_windows_to_incl_set  # TODO rename
-    # n_samples = min_windows*c.window.length/1000*eeg['fs']
-    # subsets = [s for s in subsets if s.eeg.shape[0] > n_samples]
-
-    # if c.debug_reduce_channels:
-    #     # Select only the first 30 channels
-    #     # TODO: also remove channel_names
-    #     n = 30
-    #     logging.debug(f'Reducing amount of features to {n}')
-    #     subset.eeg = subset.eeg[:, :n]
-    #     subset.channels = subset.channels[:n]

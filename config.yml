@@ -30,7 +30,7 @@ learn:
     random: false
     
 debug:
-  go: 0
+  go: 1
   short: 0
   dummy_data: 1
   reduce_channels: 0  # broken
@@ -68,10 +68,11 @@ random: 0
 save: 1
 
 # Hand kinematics
-pos: 0
+pos: 1
 vel: 0
-speed: 1
+speed: 0
 
+target_vector: 0
 complete_model: 0
 
 timeshift: 0  # ms

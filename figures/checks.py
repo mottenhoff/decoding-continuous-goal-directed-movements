@@ -1,6 +1,5 @@
 from dataclasses import fields
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -19,6 +18,32 @@ def plot_xyz(xyz):
     plt.legend()
     plt.savefig('./figures/checks/xyz_first_and_last_column.svg')
 
+def plot_target_vector(xyz, trials):
+    # 2D view
+
+    xyz = xyz[~np.all(np.isnan(xyz), axis=1)]
+    trials = trials[~np.all(np.isnan(trials[:, 1:]), axis=1), :]
+
+    target_vec = trials - xyz
+
+    fig, ax = plt.subplots(figsize=(12, 8), dpi=150)
+    ax.plot(xyz[:, 0], xyz[:, 1], c='grey', label='trajectory')
+    ax.scatter(trials[:, 0], trials[:, 1], c='red', s=10, label='goals')
+
+    for idx in np.arange(0, target_vec.shape[0], 100):
+        ax.arrow(xyz[idx, 0], xyz[idx, 1],
+                 target_vec[idx, 0], 
+                 target_vec[idx, 1],
+                 color='orange', 
+                 label='target_vector' if idx==0 else None)
+    ax.set_title('Target_vector')
+    ax.set_xlabel('x-pos')
+    ax.set_ylabel('y_pos')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    fig.legend()
+
+    fig.savefig('./figures/checks/target_vector.png')
 
 def plot_gap_cuts(xyz, idc, subset_idc):
     # Green = Start of gap
