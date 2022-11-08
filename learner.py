@@ -17,6 +17,7 @@ from libs.feature_selection.forward_feature_selection import forward_feature_sel
 from libs.feature_selection.kbest import select_k_best
 from figures import all_figures
 
+logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
 rs = RandomState(MT19937(SeedSequence(62277783366)))
 
@@ -31,7 +32,7 @@ def save(path, **kwargs):
     with open(path/'config.yml', 'w') as f:
         yaml.dump(libs.utils.nested_namespace_to_dict(config), f)
 
-    logging.info(f'Saved to {path}')
+    logger.info(f'Saved to {path}')
 
 def select_features(n_dims, n_folds, y, z, nx, n1, i):
 
@@ -40,7 +41,7 @@ def select_features(n_dims, n_folds, y, z, nx, n1, i):
     # if c.learn.fs.task_corr:      return select_highest_correlation(y, z, n_dims)
     if c.learn.fs.random:         return np.random.randint(0, y.shape[1], n_dims)
 
-    logging.warning("Feature selection is enabled, but no method is selected. Using all features.")
+    logger.warning("Feature selection is enabled, but no method is selected. Using all features.")
     return np.arange(y.shape[1])
 
 def select_valid_datasets(datasets, i, k):
@@ -97,9 +98,9 @@ def sanity_check(datasets):
 
     z_hat, y_hat, x_hat = id_sys.predict(y_test)
 
-    logging.info('Sanity check:')
-    logging.info(f'\tR2 [z]: {eval_prediction(z_test, z_hat, "R2").mean():.3f}')
-    logging.info(f'\tR2 [y]: {eval_prediction(y_test, y_hat, "R2").mean():.3f}')
+    logger.info('Sanity check:')
+    logger.info(f'\tR2 [z]: {eval_prediction(z_test, z_hat, "R2").mean():.3f}')
+    logger.info(f'\tR2 [y]: {eval_prediction(y_test, y_hat, "R2").mean():.3f}')
 
     return 0
 
@@ -116,7 +117,7 @@ def fit_and_score(z, y, nx, n1, i, save_path):
     neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
     latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
 
-    logging.info(f'''Input for learning: 
+    logger.info(f'''Input for learning: 
                         z={z.shape} | y={y.shape} | n_dims={n_dims}
                         nx={nx} | n1={n1} | i={i}''')
     for j in range(n_samples):
@@ -142,12 +143,12 @@ def fit_and_score(z, y, nx, n1, i, save_path):
             y_test, y_train = y_test[:, features], y_train[:, features]
 
             id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
-            logging.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
+            logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
             zh, yh, xh = id_sys.predict(y_test)
 
             metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
-            logging.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
-            # logging.info(metrics)
+            logger.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
+            # logger.info(metrics)
             results[j, idx, :, :] =              metrics
             trajectories[j, fold, :] =           zh
             neural_reconstructions[j, fold, :] = yh
@@ -210,4 +211,4 @@ def fit(datasets, save_path):
             if c.figures.make_all:
                 pass
         except Exception as e:
-            logging.error(e)
+            logger.error(e)

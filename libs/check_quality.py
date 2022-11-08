@@ -235,7 +235,7 @@ class QualityChecker:
             ax[0].set_title('Frequency')
             
             plt.tight_layout()
-            fig.savefig('consistent_timestamps.png')
+            fig.savefig('./figures/checks/consistent_timestamps.png')
 
         return invalid_timesteps
 

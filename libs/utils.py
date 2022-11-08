@@ -12,6 +12,8 @@ from scipy import fftpack
 from mne.filter import filter_data, notch_filter
 
 # Local
+
+logger = logging.getLogger(__name__)
 mne.set_log_level('WARNING')
 
 def nested_namespace_to_dict(ns):
@@ -125,7 +127,7 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
 def instantaneous_powerbands(eeg, fs, bands):
 
 
-    logging.info(f'Filtering data | fs={fs}, bands: {bands.__dict__}')
+    logger.info(f'Filtering data | fs={fs}, bands: {bands.__dict__}')
 
     if eeg.dtype is not (required_type := 'float64'):
         eeg = eeg.astype(required_type)

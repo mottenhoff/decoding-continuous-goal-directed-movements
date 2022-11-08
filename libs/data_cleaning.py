@@ -1,5 +1,4 @@
 # Builtin
-import logging
 import re
 
 # 3th party

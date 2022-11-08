@@ -6,11 +6,13 @@ import numpy as np
 import pandas as pd
 
 from libs import utils
+from figures import checks as fig_checks
 
 
 START = 0
 END = 1
 
+logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
 
 @dataclass
@@ -55,23 +57,13 @@ def get_subset_idc(xyz):
     
     subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:])]
 
-    # Sanity check
-    if True:
-        # Green = Start of gap
-        # Red = End of gap
-        plt.figure()
-        plt.plot(idc, xyz[idc, -1])
-        ylim_max = plt.ylim()[1]
-        for si, ei in subset_idc:
-            plt.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
-            plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
-            plt.savefig(f'./figures/checks/get_subset_idc_{si}_{ei}.svg')
+    fig_checks.plot_gap_cuts(xyz, idc, subset_idc)
 
     return subset_idc
 
 def go(eeg, xyz):
 
-    if not c.debug:
+    if not c.debug.go:
         eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands)
 
     subset_idc = get_subset_idc(xyz)

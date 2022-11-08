@@ -11,7 +11,9 @@ from libs.read_xdf import read_xdf
 from libs import plotting
 from libs import utils
 from libs import kinematics as kin
+from figures import checks as fig_checks
 
+logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
 
 LEAP_COMPLETE_HAND_XYZ_IDC = [7, 8, 9,
@@ -61,7 +63,6 @@ def parse_markers(markers, ts):
         for marker in markers[1:4]:
             marker = marker[0].split(';')
             i, ol, m, h, ob = [float(v) for v in marker[1:]]
-            
             fn_t[marker[0]] = generate_fn_t(i, ol, m, h, ob)
     except Exception:
         # For pilot experiments
@@ -184,7 +185,7 @@ def get_trials(leap, events):
     
     #   Let me know if there is a large difference, then it needs more attention
     if any(d_end_start > (warn_diff := 5)):  # Arbitrary number
-        logging.warning(f'Difference between end and start is larger than {warn_diff} samples')
+        logger.warning(f'Difference between end and start is larger than {warn_diff} samples')
 
     for i in np.where(d_end_start)[0]:
         trial_nums[t_end_idc[i]] = i
@@ -281,8 +282,8 @@ def go(path):
     leap = cut_experiment(leap, exp_time)
     eeg = cut_experiment(eeg, exp_time)
 
-    if PLOT:
-        plotting.plot_effective_framerate(leap['ts'])
+    # Plots
+    plotting.plot_effective_framerate(leap['ts'])
 
     events, trials = align(leap, events)
 
@@ -298,6 +299,7 @@ def go(path):
     trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                               trials, xyz_ts)
 
+    fig_checks.plot_events(leap, events, trials, markers)
 
     return eeg, xyz, trials
 

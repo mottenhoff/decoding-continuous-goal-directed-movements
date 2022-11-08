@@ -14,7 +14,6 @@ import logging
 import cProfile
 import pstats
 import io
-
 from pathlib import Path
 from datetime import datetime as dt
 
@@ -31,8 +30,10 @@ from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import cleanup
 from figures import all_figures
+from figures import checks as fig_checks
 
 c = utils.load_yaml('./config.yml')
+logger = logging.getLogger(__name__)
 
 def setup():
     main_path = Path(c.learn.save_path)
@@ -41,8 +42,8 @@ def setup():
     path.mkdir(parents=True, exist_ok=True)
     
     log_filename = f'output.log'
-    logging.basicConfig(format='%(levelname)s: %(message)s',
-                        level=logging.INFO if not c.debug_log else logging.DEBUG,
+    logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
+                        level=logging.INFO if not c.debug.log else logging.DEBUG,
                         handlers=[
                             logging.FileHandler(path/f'{log_filename}'),
                             logging.StreamHandler()])
@@ -61,41 +62,42 @@ def setup_debug(eeg, xyz):
     some_random_matrix = np.array([[ 0.46257236, -0.35283946,  0.06892439],
                                    [-0.44375285, -0.40580064,  1.15588792]])
 
-    logging.debug(f'Creating timeshifted linear transformation of {2} features and {timeshift} samples timeshift')
-    logging.debug(f'Used linear transformation: {some_random_matrix}')
+    logger.debug(f'Creating timeshifted linear transformation of {2} features and {timeshift} samples timeshift')
+    logger.debug(f'Used linear transformation: {some_random_matrix}')
     
     xyz[timeshift: ,:] = eeg['data'][:-timeshift, :dims] @ some_random_matrix
     xyz[:timeshift, :] = 0
 
-    logging.debug(f'Shortening data to the first {n} samples')
+    logger.debug(f'Shortening data to the first {n} samples')
     eeg['data'], xyz = eeg['data'][:n, :], xyz[:n, :]
 
     return eeg, xyz
 
 def go(save_path):
     data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh040/')
+    data_path = Path('./data/kh042/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
     if not c.combine:
-        filenames = [filenames[1]]
+        filenames = [filenames[-1]]
 
     datasets = []
     chs_to_remove = np.array([], dtype=np.int16)
     for filename in filenames:
-        logging.info(f'Loaded {filename}')
+        logger.info(f'Loaded {filename}')
 
         eeg, xyz, trials = load_leap(filename) #data_path/filename)
 
-        if c.debug:
-            if c.debug_dummy_data:
-                eeg, xyz = setup_debug(eeg, xyz)
+        fig_checks.plot_xyz(xyz)
+
+        if c.debug.go and c.debug.dummy_data:
+            eeg, xyz = setup_debug(eeg, xyz)
             
-            if c.debug_short:
-                eeg['data'] = eeg['data'][:20000, :]
-                eeg['ts'] = eeg['ts'][:20000]
-                xyz = xyz[:20000, :]
+        if c.debug.go and c.debug.short:
+            eeg['data'] = eeg['data'][:20000, :]
+            eeg['ts'] = eeg['ts'][:20000]
+            xyz = xyz[:20000, :]
 
         if c.checks.trials_vs_cont:
             checks.data_size_trial_vs_continuous(trials, xyz)
@@ -111,7 +113,7 @@ def go(save_path):
         ds.eeg = np.delete(ds.eeg, chs_to_remove, axis=1)
         ds.channels = np.delete(ds.channels, chs_to_remove)
     
-    logging.info(f'Removed {chs_to_remove.size} channels')
+    logger.info(f'Removed {chs_to_remove.size} channels')
 
     learner.fit(datasets, save_path)
 
@@ -119,7 +121,6 @@ def go(save_path):
     #     all_figures.make(save_path)
 
 def main():
-
     save_path = setup()
 
     with cProfile.Profile() as pr:
@@ -139,7 +140,7 @@ if __name__=='__main__':
     main()
 
 
-
+    
 
 # Strong channel removal
 # Select only beta

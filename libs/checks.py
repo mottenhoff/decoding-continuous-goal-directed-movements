@@ -9,6 +9,7 @@ from PSID.evaluation import evalPrediction as eval_prediction
 from libs.feature_selection.kbest import select_k_best
 from libs import utils
 
+logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
 
 def data_size_trial_vs_continuous(trials, xyz):
@@ -33,7 +34,7 @@ def data_size_trial_vs_continuous(trials, xyz):
     data_with_removed_trials = np.where(~np.isin(trials, trials_with_gaps))[0].shape[0]
     data_lost = xyz.shape[0] - data_with_removed_trials
             
-    logging.info(f'''Checks | data_size_trial_vs_continuous\n
+    logger.info(f'''Checks | data_size_trial_vs_continuous\n
     Data_size_trial_vs_continuous:
         Total data_size:            {trials.shape[0]} | [{trials.shape[0]/1024:.2f}s]
         Samples per trial:          {dict(zip(u, c))}
@@ -41,7 +42,7 @@ def data_size_trial_vs_continuous(trials, xyz):
         Data lost:                  {xyz.shape[0]} - {data_with_removed_trials} = {data_lost}
         Data lost [seconds, %]:     {data_lost/1024:.2f} s | {data_lost/xyz.shape[0]*100:.1f}%
     ''')
-    logging.info(f'''Size of gaps: {np.diff(idc)[missing]} samples | {np.diff(idc)[missing]/1024} s''')
+    logger.info(f'''Size of gaps: {np.diff(idc)[missing]} samples | {np.diff(idc)[missing]/1024} s''')
 
 def concatenate_vs_separate_datasets(datasets):
 
@@ -62,12 +63,12 @@ def concatenate_vs_separate_datasets(datasets):
 
     y_test = y_test[:, features]
     
-    logging.info('Score comparison | Concatenation vs separate dataset as input of PSID')
-    logging.info(f'\tSettings: nx={nx} | n1={n1}')
+    logger.info('Score comparison | Concatenation vs separate dataset as input of PSID')
+    logger.info(f'\tSettings: nx={nx} | n1={n1}')
 
     for i in [5, 10, 25]:
         total_samples_affected = len(datasets[:-2])*2*(i-1)
-        logging.info(f'\tTotal samples affected with i={i}: {total_samples_affected}/{sum([s.eeg.shape[0] for s in datasets])} | {total_samples_affected / sum([s.eeg.shape[0] for s in datasets])*100:.1f}% ')
+        logger.info(f'\tTotal samples affected with i={i}: {total_samples_affected}/{sum([s.eeg.shape[0] for s in datasets])} | {total_samples_affected / sum([s.eeg.shape[0] for s in datasets])*100:.1f}% ')
         for j, opt in enumerate(['con', 'sep']):
             
             y_train = [s.eeg[:, features] for s in datasets[:-1]]
@@ -88,6 +89,6 @@ def concatenate_vs_separate_datasets(datasets):
                 z_score_first = z_score.mean()
                 y_score_first = y_score.mean()
 
-            logging.info(f'\tR2 [i={i}] | {"Concatenated" if opt=="con" else "Separate":>24} | y = {y_score.mean():.3f} | z = {z_score.mean():.3f}')
-        logging.info(f'\tR2 [i={i}] | {"Concatenated - Separate":>24} |dy = {y_score_first - y_score.mean():.3f} |dz = {z_score_first - z_score.mean():.3f}')
-        logging.info('')
+            logger.info(f'\tR2 [i={i}] | {"Concatenated" if opt=="con" else "Separate":>24} | y = {y_score.mean():.3f} | z = {z_score.mean():.3f}')
+        logger.info(f'\tR2 [i={i}] | {"Concatenated - Separate":>24} |dy = {y_score_first - y_score.mean():.3f} |dz = {z_score_first - z_score.mean():.3f}')
+        logger.info('')

@@ -29,17 +29,20 @@ learn:
     kbest: 1
     random: false
     
-debug: 0
-debug_short: 1
-debug_dummy_data: 0
-debug_reduce_channels: 0  # broken
-debug_log: 0
+debug:
+  go: 0
+  short: 0
+  dummy_data: 1
+  reduce_channels: 0  # broken
+  log: 0
 
 figures:
   make_all: 1
   fig_1: 0
+
 missing_values:
   xyz_samples_for_gaps: 4
+  min_windows_to_incl_set: 2
 
 n_random_samples: 10
 plot: 1
@@ -49,7 +52,15 @@ bands:
   lfc:
     - 0.1
     - 5
+  beta:
+    - 12
+    - 30
+  # hg:
+  #   - 55
+  #   - 95
+
 window:
+  go: 1
   length: 300
   shift: 50
 
