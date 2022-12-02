@@ -8,6 +8,45 @@ from libs import utils
 
 c = utils.load_yaml('./config.yml')
 
+    # from sklearn.decomposition import FastICA
+
+    # ica = FastICA(n_components=10)
+    # cs = ica.fit_transform(eeg)
+
+    # fig, ax = plt.subplots(nrows=cs.shape[1], ncols=1, figsize=(12, 16), dpi=200)
+    # for i, row in enumerate(cs.T):
+    #     ax[i].plot(row)
+    
+    # fig.savefig('ica.svg')
+
+def plot_eeg(eeg, channel_names, name):
+    # including markers
+
+
+    n_channels = eeg.shape[1]
+    n_rows = 20
+
+    idc_per_col = np.array_split(np.arange(n_channels), n_channels/n_rows)
+    max_rows = max([len(idc) for idc in idc_per_col])
+
+    fig, ax = plt.subplots(nrows=max_rows, ncols=len(idc_per_col), 
+                           dpi=200, figsize=(24, 16))
+    
+    for col_i, ax_col in enumerate(idc_per_col):
+        for row_i, ch_num in enumerate(ax_col):
+            ax[row_i, col_i].plot(eeg[:, ch_num], linewidth=1, color='k')
+            ax[row_i, col_i].spines[['top', 'right', 'left', 'bottom']].set_visible(False)
+            ax[row_i, col_i].tick_params(axis='x', which='both', 
+                                         bottom=False, labelbottom=False)
+            ax[row_i, col_i].tick_params(axis='y', which='both',
+                                         left=False, labelleft=False)
+            ax[row_i, col_i].set_ylabel(channel_names[ch_num])
+            ax[row_i, col_i].set_ylim(-1000, 1000)
+
+    fig.suptitle(f'Eeg | {name}')
+    fig.tight_layout()
+    fig.savefig(f'./figures/checks/eeg_{name}_car.svg')
+
 def plot_xyz(xyz):
     idc = np.where(~np.isnan(xyz[:, 0]))[0]
     plt.figure(dpi=300, figsize=(12, 8))

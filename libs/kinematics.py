@@ -3,8 +3,7 @@ import numpy as np
 def get_target_vector(xyz, trials):
 
     target_vec = trials - xyz
-    
-    
+     
 
     return target_vec
 

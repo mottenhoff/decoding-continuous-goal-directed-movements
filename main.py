@@ -75,12 +75,14 @@ def setup_debug(eeg, xyz):
 
 def go(save_path):
     data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh042/')
+    data_path = Path('./data/kh040/')
+    # data_path = Path('./data/kh041/')
+    # data_path = Path('./data/kh042/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
     if not c.combine:
-        filenames = [filenames[-1]]
+        filenames = [filenames[0]]
 
     datasets = []
     chs_to_remove = np.array([], dtype=np.int16)
@@ -90,7 +92,19 @@ def go(save_path):
         eeg, xyz, trials = load_leap(filename) #data_path/filename)
 
         fig_checks.plot_xyz(xyz)
+        fig_checks.plot_eeg(eeg['data'], eeg['channel_names'], 'raw')
 
+        # Note that when combining the second loop additional channel might be removed
+        chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
+                                                          eeg['ts'], eeg['fs'],
+                                                          pid=filename.parts[-2],
+                                                          sid=filename.stem[-1]))
+        fig_checks.plot_eeg(np.delete(eeg['data'], chs_to_remove, axis=1),
+                            np.delete(eeg['channel_names'], chs_to_remove),
+                            f'after quality check | Removed: {[eeg["channel_names"][ch] for ch in chs_to_remove]}')
+
+
+        # TODO: Move to debug file
         if c.debug.go and c.debug.dummy_data:
             eeg, xyz = setup_debug(eeg, xyz)
             
@@ -110,8 +124,6 @@ def go(save_path):
 
         eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)
 
-        chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
-                                                          eeg['ts'], eeg['fs']))
         datasets += prepare.go(eeg, xyz)
 
     chs_to_remove = np.unique(chs_to_remove)

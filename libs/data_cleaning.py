@@ -1,11 +1,13 @@
 # Builtin
-import re
+import yaml
+import logging
 
 # 3th party
 import numpy as np
 
 from libs.check_quality import QualityChecker
 
+logger = logging.getLogger(__name__)
 
 def local_outlier_factor(eeg, k=None):
 
@@ -17,24 +19,40 @@ def local_outlier_factor(eeg, k=None):
     return flags
 
 
-def flag_irrelevant_channels(qc, eeg, channel_names):
+def flag_irrelevant_channels(qc, eeg, channel_names, plot=True):
     return np.concatenate([
-            qc.get_marker_channels(eeg, channel_names),
-            qc.get_ekg_channel(eeg, channel_names),
-            qc.get_disconnected_channels(eeg, channel_names)]).astype(int)
+            qc.get_marker_channels(eeg, channel_names, plot=plot),
+            qc.get_ekg_channel(eeg, channel_names, plot=plot),
+            qc.get_disconnected_channels(eeg, channel_names, plot=plot)]).astype(int)
+
+def get_hand_selected(channels, ppt_id, session_id):
+    
+    with open('./data/hand_selected_channels_to_remove.yml') as f:
+        s = yaml.load(f, Loader=yaml.FullLoader)
+    
+    chs = s[ppt_id][int(session_id)]
+
+    flagged = [channels.index(ch) for ch in chs]
+
+    logger.info(f"Channels flagged by hand: {chs}")
+
+    return flagged
 
 
-def cleanup(eeg, channels, ts, fs):
+
+def cleanup(eeg, channels, ts, fs, pid, sid):
        
     qc = QualityChecker()
 
     invalid_timestamps = qc.consistent_timestamps(ts, fs, plot=True)
-    irrelevant_channels = flag_irrelevant_channels(qc, eeg, channels)
+    irrelevant_channels = flag_irrelevant_channels(qc, eeg, channels, plot=True)
     seeg = np.delete(eeg, irrelevant_channels, axis=1)
 
-    flags_flat = qc.flat_signal(seeg)
-    flags_line = qc.excessive_line_noise(seeg, fs, plot=True)
-    flags_aa = qc.abnormal_amplitude(seeg, plot=True)
+    flags_flat = qc.flat_signal(seeg, channel_names=channels, plot=True)
+    flags_line = qc.excessive_line_noise(seeg, fs, plot=True, channel_names=channels)
+    flags_aa = qc.abnormal_amplitude(seeg, plot=True, channel_names=channels)
     # flags_lof = local_outlier_factor(seeg)
-        
-    return np.hstack((irrelevant_channels, flags_flat, flags_line, flags_aa))
+    flags_hand = get_hand_selected(channels, pid, sid)
+
+
+    return np.hstack((irrelevant_channels, flags_flat, flags_line, flags_aa, flags_hand)).astype(np.int16)

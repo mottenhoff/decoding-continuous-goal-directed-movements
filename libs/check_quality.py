@@ -9,6 +9,7 @@ Reasons to flag channels:
 
 '''
 
+import logging
 import re
 from typing import Callable, Union
 
@@ -16,6 +17,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import zscore, norm
 from mne.filter import filter_data
+
+logger = logging.getLogger(__name__)
 
 class QualityChecker:
 
@@ -54,7 +57,9 @@ class QualityChecker:
                 ax[i].set_title('Channel #{}'.format(channel_names[ch] \
                                                      if channel_names else ch))
             fig.suptitle('Channels flagged as Marker channel')
+            fig.savefig('./figures/checks/q_marker_channels.svg')
 
+        logger.info(f'Flagged marker channels: {[channel_names[ch] for ch in flagged_channels]}')
         return flagged_channels
     
     def get_ekg_channel(self,
@@ -90,12 +95,14 @@ class QualityChecker:
             ax.set_title('Channel #{}'.format(channel_names[flagged_channel[0]] \
                                               if channel_names else flagged_channel[0]))
             fig.suptitle('Channels flagged as EKG channel')
+            fig.savefig('./figures/checks/q_ekg_channels.svg')
+        logger.info(f'Flagged EKG channels: {[channel_names[ch] for ch in flagged_channel]}')
 
         return flagged_channel
 
     def get_disconnected_channels(self,
                                   eeg: np.array,
-                                  channel_names: list=None,
+                                  channel_names: list=[],
                                   plot: bool=False) -> list:
         if channel_names:
             pattern = '(?<![A-Za-z])[Ee][l\d]'
@@ -121,8 +128,9 @@ class QualityChecker:
                 ax[i].set_title('Channel #{}'.format(channel_names[ch] \
                                                      if channel_names else ch))
             fig.suptitle('Channels flagged as disconnected channels')
+            fig.savefig('./figures/checks/q_disconnected_channels.svg')
 
-
+        logger.info(f'Flagged disconnected channels: {[channel_names[ch] for ch in flagged_channels]}')
         return flagged_channels
 
     def excessive_line_noise(self, 
@@ -130,7 +138,8 @@ class QualityChecker:
                              fs: int,
                              freq_line: int=50,
                              distance_metric: Callable[[np.array, tuple], float]=None,
-                             plot: bool=False) -> list:
+                             plot: bool=False,
+                             channel_names: list=[]) -> list:
         '''
         To define a distance metric:
             Supply a function that takes as input the mean filtered line power (2d np.array)
@@ -180,7 +189,9 @@ class QualityChecker:
             plt.ylabel('Power')
             plt.legend()
             plt.tight_layout()
-            plt.savefig('line_noise.png')
+            plt.savefig('./figures/checks/q_line_noise.svg')
+
+        logger.info(f'Flagged channels for excessive line noise [0.75IQR + 2*IQR]: {[channel_names[ch] for ch in flagged_channels]}')
 
         # 7) Return the indices of bad channels
         return flagged_channels
@@ -237,11 +248,15 @@ class QualityChecker:
             plt.tight_layout()
             fig.savefig('./figures/checks/consistent_timestamps.png')
 
+        if any(invalid_timesteps):
+            logger.warning("Invalid timesteps found!")
+
         return invalid_timesteps
 
     def flat_signal(self, 
                     eeg: np.array,
-                    plot: bool=False) -> list:
+                    plot: bool=False,
+                    channel_names: list=[]) -> list:
         '''
         Flag if channel has single unique value
         '''
@@ -259,12 +274,16 @@ class QualityChecker:
                     ax[i].plot(eeg[:, ch])
                     ax[i].set_title('Channel #{}'.format(ch))
                 fig.suptitle('Channels flagged for flat signal')
+                fig.savefig('./figures/checks/q_flat_signal.svg')
+
+        logger.info(f'Flagged channels for flat signal: {[channel_names[ch] for ch in flagged_channels]}')
 
         return flagged_channels
 
     def abnormal_amplitude(self, 
                            eeg: np.array,
-                           plot: bool=False) -> list:
+                           plot: bool=False,
+                           channel_names: list=[]) -> list:
         # Flags channels if amplitude in the channel
         # is significantly higher than the other channels
         # assuming a normal distribution
@@ -284,6 +303,8 @@ class QualityChecker:
                 ax[i].plot(eeg[:, ch])
                 ax[i].set_title('Channel #{}'.format(ch))
             fig.suptitle('Channels flagged for abnormal amplitude')
+            fig.savefig('./figures/checks/q_abnormal_amplitude.svg')
+        logger.info(f'Flagged channels for abnormal amplitude [p-value(diff)<0.05, assuming gaussian]: {[channel_names[ch] for ch in flagged_channels]}')
 
         return flagged_channels
 
@@ -311,9 +332,9 @@ class QualityChecker:
                 plot: bool=False) -> Union[None, list]:
 
         self.consistent_timestamps(timestamps, float(fs), plot=plot)
-        self.excessive_line_noise(eeg, float(fs), plot=plot)
-        self.abnormal_amplitude(eeg, plot=plot)
-        self.flat_signal(eeg, plot=plot)
+        self.excessive_line_noise(eeg, float(fs), plot=plot, channel_names=channel_names)
+        self.abnormal_amplitude(eeg, plot=plot, channel_names=channel_names)
+        self.flat_signal(eeg, plot=plot, channel_names=channel_names)
         self.get_marker_channels(eeg, channel_names=channel_names, plot=plot)
         self.get_ekg_channel(eeg, channel_names=channel_names, plot=plot)
         self.get_disconnected_channels(eeg, channel_names=channel_names, plot=plot)
