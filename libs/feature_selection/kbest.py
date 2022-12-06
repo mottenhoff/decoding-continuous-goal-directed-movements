@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
 
 def select_k_best(y, z, n_dims):
     '''
@@ -12,7 +12,7 @@ def select_k_best(y, z, n_dims):
     scores = np.empty((z.shape[1], y.shape[1]), dtype=np.int32)
 
     for dim in np.arange(z.shape[1]):
-        s = SelectKBest(f_regression, k=n_dims//z.shape[1]) \
+        s = SelectKBest(mutual_info_regression, k=n_dims//z.shape[1]) \
                        .fit(y, z[:, dim])
         scores[dim, :] = np.argsort(s.scores_)
 

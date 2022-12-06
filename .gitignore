@@ -5,7 +5,7 @@ _archive/*
 figures/*.png
 figures/*.svg
 figures/checks/*
-
+*.npy
 
 docs/
 

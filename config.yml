@@ -10,7 +10,7 @@ learn:
 
   psid:
     i: [50]
-    n1: [10]
+    n1: [3]
     nx: []
 
   data:
@@ -24,25 +24,25 @@ learn:
   
   fs:
     dim_reduction: 1
-    n_dims: 30
+    n_dims: 10
     greedy_forward: 0
     kbest: 1
     random: false
     
 debug:
-  go: 1
+  go: 0
   short: 0
   dummy_data: 1
-  reduce_channels: 0  # broken
+  reduce_channels: 30  # incl in dummy data
   log: 0
 
 figures:
-  make_all: 1
+  make_all: 0
   fig_1: 0
 
 missing_values:
   xyz_samples_for_gaps: 4
-  min_windows_to_incl_set: 2
+  min_windows_to_incl_set: 5
 
 n_random_samples: 10
 plot: 1
@@ -51,10 +51,10 @@ plot: 1
 bands:
   lfc:
     - 0.1
-    - 5
-  beta:
-    - 12
-    - 30
+    - 8
+  # beta:
+  #   - 12
+  #   - 30
   # hg:
   #   - 55
   #   - 95
@@ -68,9 +68,9 @@ random: 0
 save: 1
 
 # Hand kinematics
-pos: 1
+pos: 0
 vel: 0
-speed: 0
+speed: 1
 
 target_vector: 0
 complete_model: 0

@@ -81,10 +81,12 @@ def sanity_check(datasets):
 
     # eeg, xyz = datasets[0].eeg, datasets[0].xyz
     
-    # y_train = datasets[0].eeg
-    # z_train = datasets[0].xyz
-    y_train = np.vstack([datasets[0].eeg, datasets[1].eeg])
-    z_train = np.vstack([datasets[0].xyz, datasets[1].xyz])
+    if len(datasets) > 1:
+        y_train = np.vstack([datasets[0].eeg, datasets[1].eeg])
+        z_train = np.vstack([datasets[0].xyz, datasets[1].xyz])
+    else:
+        y_train = datasets[0].eeg
+        z_train = datasets[0].xyz
     y_test  = datasets[2].eeg
     z_test  = datasets[2].xyz 
 
@@ -127,8 +129,7 @@ def fit_and_score(z, y, nx, n1, i, save_path):
 
             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
             z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
-
-
+ 
             print('LR: ', end='')
             for idim in np.arange(z_train.shape[1]):
                 lr = LinearRegression() 
@@ -179,8 +180,14 @@ def fit(datasets, save_path):
     n_inner_folds: Hyperparameter optimization
     '''
 
+    # Select what do decode
+    target_kinematics = np.hstack([[0, 1, 2] if c.pos else [],
+                                   [3, 4, 5] if c.vel else [],
+                                   [6] if c.speed else []]).astype(np.int16)  # Z
+
+
     # sanity_check(datasets)
-    n_z = datasets[0].xyz.shape[1]
+    n_z = target_kinematics.size
     
     n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
 
@@ -194,12 +201,26 @@ def fit(datasets, save_path):
         if (nx < n1) or (n1 > i*n_z):
             continue
         
-        if not c.debug:    
+        # if not c.debug.go:
+        if not True:
             # TODO: If going for separate sets, the code needs updating
+            # TODO: I think this is now handled ealier
             datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
 
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+        for ds in datasets:
+            eeg, xyz = ds.eeg, ds.xyz[:, -1][:, np.newaxis]
+            data = np.hstack((eeg, xyz))
+            cc = np.corrcoef(data.T)
+            cc_xyz = cc[:-1, -1]
+            ax.plot(cc_xyz)
+        fig.savefig('correlations_per_subset.svg')
+            
+
         y = np.vstack([s.eeg for s in datasets])
-        z = np.vstack([s.xyz for s in datasets])
+        z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
 
         path = save_path/f'{nx}_{n1}_{i}'
         path.mkdir()

@@ -1,4 +1,5 @@
 import logging
+import csv
 
 from bisect import bisect_right
 from pathlib import Path
@@ -33,6 +34,17 @@ class Events:
     on_target: np.array
     off_target: np.array
     # skip: np.array
+
+
+def load_locations(path):
+    if not path.exists():
+        return {}
+
+    with open(path) as f:
+        reader = csv.DictReader(f)
+        data = {row['electrode_name_1']: row['location'] for row in reader}
+
+    return data
 
 
 def locate_pos(ts, target_ts):
@@ -195,31 +207,15 @@ def get_trials(leap, events):
     return trials
 
 def get_kinematics(xyz, ts):
-    # TODO: What to do with full model.
+    # TODO: Currently only works with one point
 
-    kinematics = np.empty((xyz.shape[0], 0))
+    vel = kin.velocity(xyz)
+    vel = np.vstack((np.zeros(3), vel))
 
-    if c.pos:
-        kinematics = np.hstack((kinematics, xyz))
-    
-    if c.vel or c.speed:
-        v = kin.velocity(xyz)
-        v = np.vstack((np.zeros((1, xyz.shape[1])), v))  # Not necessary if aligned later.
-    
-    if c.vel:    
-        kinematics = np.hstack((kinematics, v))
+    spe = kin.vector_length(vel)[:, np.newaxis]
 
-    if c.speed:
+    return np.hstack((xyz, vel, spe))
 
-        if c.complete_model:
-            points = np.arange(len(LEAP_COMPLETE_HAND_XYZ_IDC)).reshape(-1, 3)
-        else:
-            points = [[0, 1, 2]]
-
-        s = np.vstack([kin.vector_length(v[:, point]) for point in points]).T
-        kinematics = np.hstack((kinematics, s))
-
-    return kinematics
 
 def get_target_per_sample(trial_nums, targets):
     ''' points: 3d cursor coordinates
@@ -314,6 +310,8 @@ def go(path):
                                            xyz, xyz_ts)
     trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                               trials, xyz_ts)
+
+    eeg['channel_mapping'] = load_locations(path.parent/'electrode_locations.csv')
 
     fig_checks.plot_events(leap, events, trials[:, 0], markers)
 

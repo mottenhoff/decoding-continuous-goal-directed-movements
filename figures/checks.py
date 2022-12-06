@@ -1,10 +1,12 @@
 from dataclasses import fields
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
 
 from libs import utils
+from libs import kinematics as kin
 
 c = utils.load_yaml('./config.yml')
 
@@ -19,9 +21,17 @@ c = utils.load_yaml('./config.yml')
     
     # fig.savefig('ica.svg')
 
-def plot_eeg(eeg, channel_names, name):
-    # including markers
+def reset():
+    path = Path(r'./figures/checks/')
 
+    for f in path.glob('**/*'):
+        if f.is_file():
+            f.unlink(missing_ok=True)
+
+
+
+def plot_eeg(eeg, channel_names, name, loc_map={}):
+    # including markers
 
     n_channels = eeg.shape[1]
     n_rows = 20
@@ -40,22 +50,40 @@ def plot_eeg(eeg, channel_names, name):
                                          bottom=False, labelbottom=False)
             ax[row_i, col_i].tick_params(axis='y', which='both',
                                          left=False, labelleft=False)
-            ax[row_i, col_i].set_ylabel(channel_names[ch_num])
+            channel_name = channel_names[ch_num]
+            ax[row_i, col_i].set_title(loc_map.get(channel_name, ''), fontsize='small')
+            ax[row_i, col_i].set_ylabel(channel_name)
             ax[row_i, col_i].set_ylim(-1000, 1000)
 
     fig.suptitle(f'Eeg | {name}')
     fig.tight_layout()
-    fig.savefig(f'./figures/checks/eeg_{name}_car.svg')
+    fig.savefig(f'./figures/checks/eeg_{name}.svg')
 
 def plot_xyz(xyz):
     idc = np.where(~np.isnan(xyz[:, 0]))[0]
-    plt.figure(dpi=300, figsize=(12, 8))
-    plt.scatter(idc, xyz[idc, 0], s=3, c='orange')
-    plt.plot(idc, xyz[idc, 0], label='pos_x')
-    plt.scatter(idc, xyz[idc, -1], s=3, c='green')
-    plt.plot(idc, xyz[idc, -1], c='brown', label='speed')
-    plt.legend()
-    plt.savefig('./figures/checks/xyz_first_and_last_column.svg')
+
+    pos = xyz[:, [0, 1, 2]]
+    vel = xyz[:, [3, 4, 5]]
+    spe = xyz[:, 6]
+
+    fig, ax = plt.subplots(4, 1, dpi=300, figsize=(12, 8))
+    for j, k in enumerate([pos, vel]):
+        ax[0].scatter(idc, k[:, 0], s=2, c='blue' if j==0 else 'orange')
+        ax[0].plot(idc, k[:, 0], linestyle='--' if j==0 else '-',
+                                   label='pos' if j==0 else 'vel', 
+                                   c='blue' if j==0 else 'orange')
+        ax[1].scatter(idc, k[:, 1], s=2, c='blue' if j==0 else 'orange')
+        ax[1].plot(idc, k[:, 1], linestyle='--' if j==0 else '-',
+                                   label='pos' if j==0 else 'vel', 
+                                   c='blue' if j==0 else 'orange')
+        ax[2].scatter(idc, k[:, 2], s=2, c='blue' if j==0 else 'orange')
+        ax[2].plot(idc, k[:, 2], linestyle='--' if j==0 else '-',
+                                   label='pos' if j==0 else 'vel', 
+                                   c='blue' if j==0 else 'orange')
+    ax[3].plot(idc, spe, label='speed')
+
+    fig.legend()
+    fig.savefig('./figures/checks/xyz_first_and_last_column.svg')
 
 def plot_target_vector(xyz, trials):
     # 2D view
@@ -87,13 +115,13 @@ def plot_target_vector(xyz, trials):
 def plot_gap_cuts(xyz, idc, subset_idc):
     # Green = Start of gap
     # Red = End of gap
-    plt.figure()
-    plt.plot(idc, xyz[idc, -1])
+    plt.figure(figsize=(16,12))
+    plt.plot(idc, xyz[idc, 0])
     ylim_max = plt.ylim()[1]
     for si, ei in subset_idc:
         plt.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
         plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
-    plt.savefig(f'./figures/checks/gap_cut_idc_{si}_{ei}.svg')
+    plt.savefig(f'./figures/checks/gap_cuts.svg')
 
 def plot_events(xyz, events, trials, markers):
     cmap = get_cmap('tab20')
@@ -107,8 +135,7 @@ def plot_events(xyz, events, trials, markers):
         ax[i].plot(ts, xyz[:, i], color='k')
         for k, field in enumerate(fields(events)):
 
-            if k not in [2]:
-            # if k!=0:
+            if field.name in ['off_target']:
                 continue
 
             for j, row in enumerate(getattr(events, field.name)):

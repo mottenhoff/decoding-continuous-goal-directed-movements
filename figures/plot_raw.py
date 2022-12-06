@@ -6,7 +6,8 @@ from libs.load.load_yaml import load_yaml
 c = load_yaml('./config.yml')
 
 def raw_eeg(session, savepath):
-    # including markers
+    # Actually a session
+    # including markers --> color by direction?
 
     n_channels = session.eeg.shape[1]
     n_rows = 20

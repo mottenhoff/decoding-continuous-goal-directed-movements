@@ -28,9 +28,11 @@ from libs import timeshift
 from libs import utils
 from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
-from libs.data_cleaning import cleanup
+from libs.data_cleaning import cleanup, remove_non_eeg
 from figures import all_figures
 from figures import checks as fig_checks
+
+from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
@@ -71,12 +73,18 @@ def setup_debug(eeg, xyz):
     logger.debug(f'Shortening data to the first {n} samples')
     eeg['data'], xyz = eeg['data'][:n, :], xyz[:n, :]
 
+    if c.debug.reduce_channels:
+        eeg['data'], eeg['channel_names'] = eeg['data'][:, :c.debug.reduce_channels], eeg['channel_names'][:c.debug.reduce_channels]
+        # eeg['data'], eeg['channel_names'] = eeg['data'][:, :5], eeg['channel_names'][:5]
+
     return eeg, xyz
 
 def go(save_path):
-    data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh040/')
-    # data_path = Path('./data/kh041/')
+    fig_checks.reset()
+
+    # data_path = Path('./data/kh036/')
+    # data_path = Path('./data/kh040/')
+    data_path = Path('./data/kh041/')
     # data_path = Path('./data/kh042/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
@@ -91,23 +99,26 @@ def go(save_path):
 
         eeg, xyz, trials = load_leap(filename) #data_path/filename)
 
-        fig_checks.plot_xyz(xyz)
-        fig_checks.plot_eeg(eeg['data'], eeg['channel_names'], 'raw')
+        eeg['data'], eeg['channel_names'] = remove_non_eeg(eeg['data'], eeg['channel_names'])
 
+        # fig_checks.plot_xyz(xyz)
+        # fig_checks.plot_eeg(eeg['data'], eeg['channel_names'], 'raw', loc_map=eeg['channel_mapping'])
+
+        # TODO: Move to debug file
+        if c.debug.go and c.debug.dummy_data:
+            eeg, xyz = setup_debug(eeg, xyz)
+        
         # Note that when combining the second loop additional channel might be removed
         chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
                                                           eeg['ts'], eeg['fs'],
                                                           pid=filename.parts[-2],
                                                           sid=filename.stem[-1]))
-        fig_checks.plot_eeg(np.delete(eeg['data'], chs_to_remove, axis=1),
-                            np.delete(eeg['channel_names'], chs_to_remove),
-                            f'after quality check | Removed: {[eeg["channel_names"][ch] for ch in chs_to_remove]}')
 
+        # fig_checks.plot_eeg(np.delete(eeg['data'], chs_to_remove, axis=1),
+        #                     np.delete(eeg['changit nel_names'], chs_to_remove),
+        #                     f'after quality check | Removed: {[eeg["channel_names"][ch] for ch in chs_to_remove]}',
+        #                     loc_map=eeg['channel_mapping'])
 
-        # TODO: Move to debug file
-        if c.debug.go and c.debug.dummy_data:
-            eeg, xyz = setup_debug(eeg, xyz)
-            
         if c.debug.go and c.debug.short:
             eeg['data'] = eeg['data'][:20000, :]
             eeg['ts'] = eeg['ts'][:20000]
@@ -118,13 +129,20 @@ def go(save_path):
 
         if c.target_vector:
             if not c.pos:
-                logger.error(f'Target vector can only be calculated if position is used as target.')
+                logger.error(f'Target vector can only be calculated if position is used as Z.')
             
+            # TODO: CHANGE THIS, THIS IS ERROR PRONE
+            #       Supply Trial information (including a target vector?) 
             eeg['data'] = np.hstack((eeg['data'], trials[:, 1:] - xyz))
 
         eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)
 
+        # with open(f'{data_path.name}_data.npy', 'wb') as f:
+        #     np.save(f, np.hstack((eeg['data'], xyz)))
+        
         datasets += prepare.go(eeg, xyz)
+
+        print('')
 
     chs_to_remove = np.unique(chs_to_remove)
     for ds in datasets:

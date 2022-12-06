@@ -32,7 +32,8 @@ def get_hand_selected(channels, ppt_id, session_id):
     
     chs = s[ppt_id][int(session_id)]
 
-    flagged = [channels.index(ch) for ch in chs]
+    flagged = [channels.index(ch) for ch in chs if ch in channels]
+
 
     logger.info(f"Channels flagged by hand: {chs}")
 
@@ -45,14 +46,21 @@ def cleanup(eeg, channels, ts, fs, pid, sid):
     qc = QualityChecker()
 
     invalid_timestamps = qc.consistent_timestamps(ts, fs, plot=True)
-    irrelevant_channels = flag_irrelevant_channels(qc, eeg, channels, plot=True)
-    seeg = np.delete(eeg, irrelevant_channels, axis=1)
 
-    flags_flat = qc.flat_signal(seeg, channel_names=channels, plot=True)
-    flags_line = qc.excessive_line_noise(seeg, fs, plot=True, channel_names=channels)
-    flags_aa = qc.abnormal_amplitude(seeg, plot=True, channel_names=channels)
+    flags_flat = qc.flat_signal(eeg, channel_names=channels, plot=True)
+    flags_line = qc.excessive_line_noise(eeg, fs, plot=True, channel_names=channels)
+    # flags_aa = qc.abnormal_amplitude(seeg, plot=True, channel_names=channels)
     # flags_lof = local_outlier_factor(seeg)
-    flags_hand = get_hand_selected(channels, pid, sid)
+    # flags_hand = get_hand_selected(channels, pid, sid)
 
+    return np.hstack((flags_flat, flags_line)).astype(np.int16)
+    # return np.hstack((irrelevant_channels, flags_flat, flags_line, flags_aa, flags_hand)).astype(np.int16)
 
-    return np.hstack((irrelevant_channels, flags_flat, flags_line, flags_aa, flags_hand)).astype(np.int16)
+def remove_non_eeg(eeg, channels):
+    qc = QualityChecker()
+
+    flagged = flag_irrelevant_channels(qc, eeg, channels, plot=True)
+    eeg = np.delete(eeg, flagged, axis=1)
+    channels = np.delete(channels, flagged)    
+
+    return eeg, channels

@@ -8,6 +8,7 @@ import pandas as pd
 from libs import utils
 from figures import checks as fig_checks
 
+from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 
 START = 0
 END = 1
@@ -43,11 +44,17 @@ def get_windows(subset, wl, ws):
     return subset
 
 def fill_missing_values(data):
+    # TODO: check if needed to handle  leading and trailing nans
     return pd.DataFrame(data).interpolate().to_numpy()
 
-def get_subset_idc(xyz):
+def get_subset_idc(xyz, fs):
 
     n = c.missing_values.xyz_samples_for_gaps
+
+    # Get absolute amount of samples in subset for at least 1 windows
+    min_samples = c.window.length * 0.001 * 1024
+    # Check if the user set amount of windows is met
+    min_samples = np.ceil(c.missing_values.min_windows_to_incl_set * min_samples)
 
     idc = np.where(~np.isnan(xyz[:, 0]))[0] 
     diff = np.diff(idc)
@@ -55,27 +62,30 @@ def get_subset_idc(xyz):
 
     gaps = np.hstack((-1, gaps, idc.size-1))
     
-    subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:])]
+    subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:]) \
+                                             if (idc[end_i] - idc[start_i]) > min_samples]
 
     fig_checks.plot_gap_cuts(xyz, idc, subset_idc)
 
     return subset_idc
 
 def go(eeg, xyz):
-    
-    if not c.debug.go:
-        tv = eeg['data'][:, -3:] if c.target_vector else np.empty((eeg.shape[0], 0))
-        eeg['data'] = eeg['data'][:, :-3] if c.target_vector else eeg['data']
-        eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands)
-        eeg['data'] = np.hstack((eeg['data'], tv))
 
-    eeg['data'] = fill_missing_values(eeg['data'])  # This is only for the target vector, eeg itself shouldnt contain any missing values
-    xyz = fill_missing_values(xyz)
-            
-    subset_idc = get_subset_idc(xyz)
+    if not c.debug.go:
+        # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
+        pass
+
+    if c.target_vector:
+        # Get target_vector
+        # Stack to eeg
+        pass
+
+    subset_idc = get_subset_idc(xyz, eeg['fs'])
+
+    largest_subset = np.argmax([s[1]-s[0] for s in subset_idc])
 
     subsets = []
-    for s, e in subset_idc:
+    for i, (s, e) in enumerate(subset_idc):
         
         subset = Subset(eeg = eeg['data'][s:e, :],
                         xyz = xyz[s:e, :],
@@ -83,10 +93,23 @@ def go(eeg, xyz):
                         fs  = eeg['fs'],
                         channels = eeg['channel_names'])
 
+        # subset.eeg = fill_missing_values(subset.eeg)
+        subset.xyz = fill_missing_values(subset.xyz)
+
+        if i == largest_subset:
+            # Do exploratory analysis here
+            pass
+            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=False)
+            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=True)
+
         # Window
         subset = get_windows(subset,
                              c.window.length,
                              c.window.shift)
+
+        if i == largest_subset:
+            # plot_band_correlations(subset.eeg, subset.xyz, '_windowed')
+            pass
 
         subsets.append(subset)
 
