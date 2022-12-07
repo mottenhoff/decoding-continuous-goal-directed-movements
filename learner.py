@@ -148,7 +148,8 @@ def fit_and_score(z, y, nx, n1, i, save_path):
                 print(f' {r:.2f}', end='')
             print('\n')
 
-            features = select_features(n_dims, n_inner_folds, y, z, nx, n1, i) \
+            # TODO: THIS doesnt seem to select on training data!!!
+            features = select_features(n_dims, n_inner_folds, y_train, z_train, nx, n1, i) \
                        if c.learn.fs.dim_reduction else np.arange(y.shape[1])
 
             y_test, y_train = y_test[:, features], y_train[:, features]
@@ -174,7 +175,7 @@ def fit_and_score(z, y, nx, n1, i, save_path):
              z=z,
              y=y)
 
-def fit(datasets, save_path):
+def fit(datasets, save_path): 
     '''
     x = Latent states
     y = Neural data
