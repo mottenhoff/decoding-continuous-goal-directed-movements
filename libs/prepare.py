@@ -23,6 +23,7 @@ class Subset:
     ts:  np.array
     fs:  np.array
     channels: np.array
+    mapping: dict
 
 def get_windows(subset, wl, ws):
     subset.eeg = utils.window(subset.eeg, subset.ts,
@@ -73,6 +74,7 @@ def go(eeg, xyz):
 
     if not c.debug.go:
         # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
+        # logger.info(f'Filtered: {c.bands.__dict__}')
         pass
 
     if c.target_vector:
@@ -91,7 +93,8 @@ def go(eeg, xyz):
                         xyz = xyz[s:e, :],
                         ts  = eeg['ts'][s:e],
                         fs  = eeg['fs'],
-                        channels = eeg['channel_names'])
+                        channels = eeg['channel_names'],
+                        mapping = eeg['channel_mapping'])
 
         # subset.eeg = fill_missing_values(subset.eeg)
         subset.xyz = fill_missing_values(subset.xyz)

@@ -5,6 +5,7 @@ import numpy as np
 import yaml
 from matplotlib.gridspec import GridSpec
 
+
 try:
     import libs.utils
     conf = libs.utils.load_yaml('./config.yml')
@@ -12,14 +13,12 @@ except Exception:
     import utils
     conf = utils.load_yaml('./config.yml')
 
-
 DIMS = np.array(['X', 'Y', 'Z'])
 COLORS = dict(zip(DIMS, ['r', 'g', 'b']))
 
 TOP_HEIGHT = 1
 MIDDLE_HEIGHT = 6
 BOTTOM_HEIGHT = 3
-
 
 def load(path):
     m =  np.load(path/'metrics.npy')

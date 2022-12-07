@@ -1,13 +1,18 @@
+import logging
 from dataclasses import fields
 from pathlib import Path
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
+from mne.stats import fdr_correction
+from scipy.stats import pearsonr, spearmanr
 
 from libs import utils
 from libs import kinematics as kin
 
+logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
 
     # from sklearn.decomposition import FastICA
@@ -156,3 +161,60 @@ def plot_events(xyz, events, trials, markers):
     fig.savefig('./figures/checks/events.png')
 
     return
+
+def plot_datasets(datasets_o, target_kinematics_o):
+    datasets = datasets_o.copy()
+    target_kinematics = target_kinematics_o.copy()
+    if not datasets:
+        logger.warning('Empty lists of datasets, returning...')
+        return
+
+    channels = datasets[0].channels
+    mapping = datasets[0].mapping
+
+    logger.info(f'Correlations per subset')
+    for ds in datasets:
+        eeg, xyz = ds.eeg, ds.xyz[:, -1][:, np.newaxis]
+        data = np.hstack((eeg, xyz))
+        cc = np.corrcoef(data.T)
+        cc_xyz = cc[:-1, -1]
+        cc_xyz = np.sort(cc_xyz)
+        logger.info(f'{eeg.shape[0]:>5} {cc_xyz[:3]} {cc_xyz[-3:]}')
+    logger.info('')
+
+    y = np.vstack([s.eeg for s in datasets])
+    z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
+
+    cc = np.vstack([(pearsonr(ch, z).statistic[0], pearsonr(ch, z).pvalue) for ch in y.T])
+    logger.info(f'{y.shape[0]:>5} {np.sort(cc[:, 0])[:3]} {np.sort(cc[:, 0])[-3:]}')
+
+    cc[:, 1] = fdr_correction(cc[:, 1])[1]
+    
+    alpha = 0.05
+    is_sig = np.where(cc[:, 1] < alpha)[0]
+    sig_chs = channels[is_sig]
+    sig_vals = cc[:, 1][is_sig]
+    sig_cc = cc[:, 0][is_sig]
+
+    sorted_idc = np.argsort(sig_vals)
+    sig_chs, sig_vals, sig_cc = sig_chs[sorted_idc], sig_vals[sorted_idc], sig_cc[sorted_idc]
+    logger.info('')
+    logger.info(f'Significant channels [alpha={alpha}, FDR]')
+    logger.info(f'---------------------------------')
+    for ch, corr, pval in zip(sig_chs, sig_cc, sig_vals):
+        logger.info(f'{ch}_{mapping.get(ch, ""):<35}: cc={corr:<6.3f} [[pval= {pval:<7.4f}]')
+
+    fig, ax = plt.subplots(5, 1, figsize=(12, 8))
+    for i, (ch, corr, pval) in enumerate(zip(sig_chs, sig_cc, sig_vals)):
+        ax[i].plot(y[:, channels==ch], label='y')
+        ax[i].plot(z[:, -1], label='z')
+        ax[i].set_title(f"{ch} | cc = {corr:.3f} [p={pval:.3f}]")
+
+        if i==4:
+            ax[i].set_xlabel(f'Windows [{c.window.length} + {c.window.shift} ms step]')
+            ax[i].set_ylabel(f'Value')
+            ax[i].legend()
+            break
+
+    fig.tight_layout()
+    fig.savefig('figures/checks/dataset_correlations.svg')

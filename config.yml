@@ -1,7 +1,7 @@
 checks:
   concat_datasets: 0
   trials_vs_cont: 0
-combine: 0
+combine: 1
 
 learn:
 
@@ -9,8 +9,8 @@ learn:
   save_path: ./results/
 
   psid:
-    i: [50]
-    n1: [3]
+    i: [10, 25, 50, 100]
+    n1: [3, 5, 10, 20]
     nx: []
 
   data:
@@ -18,13 +18,13 @@ learn:
 
   cv:
     gridsearch: false
-    inner_folds: 4
+    inner_folds: 4 
     outer_folds: 5
     n_repeats: 1
   
   fs:
     dim_reduction: 1
-    n_dims: 10
+    n_dims: 30
     greedy_forward: 0
     kbest: 1
     random: false

@@ -84,8 +84,8 @@ def go(save_path):
 
     # data_path = Path('./data/kh036/')
     # data_path = Path('./data/kh040/')
-    data_path = Path('./data/kh041/')
-    # data_path = Path('./data/kh042/')
+    # data_path = Path('./data/kh041/')
+    data_path = Path('./data/kh042/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
@@ -106,6 +106,7 @@ def go(save_path):
 
         # TODO: Move to debug file
         if c.debug.go and c.debug.dummy_data:
+            print('DEBUG is active!')
             eeg, xyz = setup_debug(eeg, xyz)
         
         # Note that when combining the second loop additional channel might be removed
@@ -152,6 +153,8 @@ def go(save_path):
     logger.info(f'Removed {chs_to_remove.size} channels')
 
     learner.fit(datasets, save_path)
+
+    # Figures over sessions
 
     # if c.figures.make_all:
     #     all_figures.make(save_path)

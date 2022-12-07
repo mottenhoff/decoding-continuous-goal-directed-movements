@@ -4,6 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 from itertools import product
 
+import matplotlib.pyplot as plt
 import numpy as np
 import PSID
 import yaml
@@ -16,6 +17,7 @@ from libs import checks
 from libs.feature_selection.forward_feature_selection import forward_feature_selection
 from libs.feature_selection.kbest import select_k_best
 from figures import all_figures
+from figures import checks as fig_checks
 
 logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
@@ -106,6 +108,14 @@ def sanity_check(datasets):
 
     return 0
 
+def get_psid_params(n_states, relevant, horizons):
+    if not n_states:
+        for n1, i in product(relevant, horizons):
+            yield n1, n1, i
+    else:
+        for nx, n1, i in product(n_states, relevant, horizons):
+            yield nx, n1, i
+
 def fit_and_score(z, y, nx, n1, i, save_path):
 
     n_samples =        c.learn.cv.n_repeats
@@ -191,34 +201,23 @@ def fit(datasets, save_path):
     
     n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
 
-    n_states = relevant if not n_states else n_states
-
     if c.checks.concat_datasets:
         checks.concatenate_vs_separate_datasets(datasets)
 
-    for nx, n1, i in product(n_states, relevant, horizons):
+    for nx, n1, i in get_psid_params(n_states, relevant, horizons):
 
         if (nx < n1) or (n1 > i*n_z):
             continue
         
         # if not c.debug.go:
-        if not True:
+        if True:
             # TODO: If going for separate sets, the code needs updating
             # TODO: I think this is now handled ealier
             datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
-
-
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-        for ds in datasets:
-            eeg, xyz = ds.eeg, ds.xyz[:, -1][:, np.newaxis]
-            data = np.hstack((eeg, xyz))
-            cc = np.corrcoef(data.T)
-            cc_xyz = cc[:-1, -1]
-            ax.plot(cc_xyz)
-        fig.savefig('correlations_per_subset.svg')
+            # if i == min(horizons):
+            if True:
+                fig_checks.plot_datasets(datasets, target_kinematics)
             
-
         y = np.vstack([s.eeg for s in datasets])
         z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
 
@@ -226,9 +225,9 @@ def fit(datasets, save_path):
         path.mkdir()
         
         fit_and_score(z, y, nx, n1, i, path)
-        all_figures.make(path)
-        try:
+        all_figures.make(path)  # Figures per session
 
+        try:
             if c.figures.make_all:
                 pass
         except Exception as e:
