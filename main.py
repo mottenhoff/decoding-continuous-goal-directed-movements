@@ -81,7 +81,7 @@ def setup_debug(eeg, xyz):
 
 def go(save_path):
     fig_checks.reset()
-
+ 
     # data_path = Path('./data/kh036/')
     # data_path = Path('./data/kh040/')
     # data_path = Path('./data/kh041/')
@@ -156,8 +156,8 @@ def go(save_path):
 
     # Figures over sessions
 
-    # if c.figures.make_all:
-    #     all_figures.make(save_path)
+    if c.figures.make_all:
+        all_figures.make_overview(save_path)
 
 def main():
     save_path = setup()
@@ -176,7 +176,14 @@ def main():
 
 
 if __name__=='__main__':
-    main()
+    # path = Path('/home/coder/project/results/20221207_1730')  #Kh40
+    # path = Path('/home/coder/project/results/20221207_1709')  #Kh41
+    # path = Path('/home/coder/project/results/20221207_0215')  #Kh42
+    # all_figures.make_overview(path)
+# 
+    # fig_checks.check_used_data('')
+
+    # main()
 
 
     

@@ -24,7 +24,8 @@ def make(path):
     z, zh = z.ravel(), zh.ravel()
     m = m.squeeze()
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
+
     ax.plot(z, label='z-true')
     ax.plot(zh, label='z-pred')
     ax.set_title(f'Z reconstruction | cc={m[:, CC].mean():.3f}\u00b1{m[:, CC].std():.3f}')
@@ -41,5 +42,3 @@ def make(path):
     fig, ax = plt.subplots(figsize=(12, 8))
     plt.plot(freqs[idx], psd[idx])
     plt.savefig(path/'z-psd.png')
-
-    # return

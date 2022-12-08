@@ -1,3 +1,5 @@
+import csv  # TEMP
+
 import logging
 from dataclasses import fields
 from pathlib import Path
@@ -25,6 +27,16 @@ c = utils.load_yaml('./config.yml')
     #     ax[i].plot(row)
     
     # fig.savefig('ica.svg')
+
+def load(path):
+    m =  np.load(path/'metrics.npy')  # CC, R2, MSE, RMSE
+    z =  np.load(path/'z.npy')
+    y =  np.load(path/'y.npy')
+    zh = np.load(path/'trajectories.npy')
+    yh = np.load(path/'neural_reconstructions.npy')    
+    xh = np.load(path/'latent_states.npy')
+
+    return m, z, y, zh, yh, xh
 
 def reset():
     path = Path(r'./figures/checks/')
@@ -218,3 +230,62 @@ def plot_datasets(datasets_o, target_kinematics_o):
 
     fig.tight_layout()
     fig.savefig('figures/checks/dataset_correlations.svg')
+
+def load_locations(path):
+    if not path.exists():
+        return {}
+
+    with open(path) as f:
+        reader = csv.DictReader(f)
+        data = {row['electrode_name_1']: row['location'] for row in reader}
+
+    return data
+
+
+def check_used_data(path):
+    import ast # TMP
+
+
+    ppt = 'kh042'
+    mapping = load_locations(Path(f"/home/coder/project/data/{ppt}/electrode_locations.csv"))
+    ch_names = list(mapping.keys())
+
+    lst = "[49 43 40 44 48 45 46 47 25 42 95 81 0 80 41 20 1 13 24 79 99 77 19 51 21 36 78 50 94 15]"
+    selected_chs = ast.literal_eval(lst.replace(' ', ','))
+
+    path = Path("/home/coder/project/results/20221207_0215/3_3_10")
+    m, z, y, zh, yh, xh = load(path)
+    yh = yh.squeeze()
+    
+    fig, ax = plt.subplots(nrows=len(selected_chs), ncols=1, figsize=(12, 20))
+    for i, ch in enumerate(selected_chs):
+        if i == 0:
+            ax[i].plot(y[:, ch], label='True')
+            ax[i].plot(yh[:, i], label='Reconstructed')
+        else:
+            ax[i].plot(y[:, ch])
+            ax[i].plot(yh[:, i])
+            
+        ax[i].set_title(f'{ch_names[ch]}_{mapping[ch_names[ch]]}')
+
+    fig.legend()
+    fig.suptitle('Reconstructed Neural data of top N selected channels')
+    # fig.tight_layout()
+    fig.savefig('Reconstructed_neural_data.png')
+
+    fig, ax = plt.subplots(nrows=5, ncols=1, figsize=(10, 15))
+    for i, ch in enumerate(selected_chs[:5]):
+        if i==0:
+            ax[i].plot(y[:, ch], label='Y-true')
+            ax[i].plot(z, label='Z-true')
+        else: 
+            ax[i].plot(y[:, ch])
+            ax[i].plot(z)
+        
+        ax[i].set_title(f'{ch_names[ch]}_{mapping[ch_names[ch]]}')
+    fig.legend()
+    fig.suptitle('Neural data and Behavior used in learning. (top 5 selected)')
+    fig.savefig('yt_zt.png')
+    print('')
+
+

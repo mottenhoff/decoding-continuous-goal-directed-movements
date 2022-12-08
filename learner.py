@@ -226,7 +226,7 @@ def fit(datasets, save_path):
         path.mkdir()
         
         fit_and_score(z, y, nx, n1, i, path)
-        all_figures.make(path)  # Figures per session
+        all_figures.make(path)  # Figures per session  # Rename to all_figures.make_session
 
         try:
             if c.figures.make_all:
