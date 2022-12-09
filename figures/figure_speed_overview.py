@@ -132,8 +132,8 @@ def make(path):
 
     # TODO: Cant handle Nx now
     # TODO: Get options dynamically (config?)
-    n1 = ('n states [n1]', [3, 5, 10, 20])
-    i  = ('Horizons', [10, 25, 50, 100])
+    n1 = ('n states [n1]', [3, 5, 10, 20, 30])
+    i  = ('Horizons', [5, 10, 25, 50, 100])
 
     cc_scores = scores[0, :, :, CC, MEAN]
     cc_max = np.where(cc_scores == np.nanmax(cc_scores))

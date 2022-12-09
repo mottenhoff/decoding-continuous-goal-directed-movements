@@ -26,10 +26,14 @@ class Subset:
     mapping: dict
 
 def get_windows(subset, wl, ws):
+    size_start = subset.eeg.shape
+
     subset.eeg = utils.window(subset.eeg, subset.ts,
                               wl, ws, subset.fs)
     subset.xyz = utils.window(subset.xyz, subset.ts,
                               wl, ws, subset.fs)
+
+    logger.info(f"Creating windows of length = {wl}ms and stepsize = {ws}ms from {size_start} sample to {subset.eeg.shape} windows [win, samp, chs]")
 
     subset.eeg = np.mean(subset.eeg, axis=1)
     subset.xyz = np.nanmean(subset.xyz, axis=1)
@@ -37,15 +41,22 @@ def get_windows(subset, wl, ws):
     if subset.xyz.ndim == 1:
         subset.xyz = subset.xyz[:, np.newaxis]
 
-    is_all_nan = np.all(np.isnan(subset.xyz), axis=1)
+    is_all_nan = np.all(np.isnan(subset.xyz), axis=1)  # Why is this here?
 
     subset.eeg = subset.eeg[~is_all_nan, :]
     subset.xyz = subset.xyz[~is_all_nan, :]
-                    
+
+    logger.info(f'Removed {is_all_nan.sum()} out of {is_all_nan.size} windows with only nan')
+
     return subset
 
 def fill_missing_values(data):
     # TODO: check if needed to handle  leading and trailing nans
+
+    data = pd.DataFrame(data)
+    isnan = data.isna().sum(axis=0)
+    logger.info(f'Interpolating missing values: On average {isnan.mean()} samples ({isnan.mean()/data.shape[0]*100:.1f}%) ')
+
     return pd.DataFrame(data).interpolate().to_numpy()
 
 def get_subset_idc(xyz, fs):
@@ -88,7 +99,7 @@ def go(eeg, xyz):
 
     subsets = []
     for i, (s, e) in enumerate(subset_idc):
-        
+        logger.info(f'Cutting subset {i} from: {s} to {e}')
         subset = Subset(eeg = eeg['data'][s:e, :],
                         xyz = xyz[s:e, :],
                         ts  = eeg['ts'][s:e],
@@ -97,7 +108,8 @@ def go(eeg, xyz):
                         mapping = eeg['channel_mapping'])
 
         # subset.eeg = fill_missing_values(subset.eeg)
-        subset.xyz = fill_missing_values(subset.xyz)
+        subset.xyz = fill_missing_values(subset.xyz) # Check if this can be commented out because of nanmean
+        # subset2 = copy(subset)
 
         if i == largest_subset:
             # Do exploratory analysis here

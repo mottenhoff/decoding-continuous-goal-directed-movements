@@ -63,4 +63,5 @@ def remove_non_eeg(eeg, channels):
     eeg = np.delete(eeg, flagged, axis=1)
     channels = np.delete(channels, flagged)    
 
+    logger.info(f'Removing non-eeg channels: {flagged}')
     return eeg, channels

@@ -16,6 +16,7 @@ import libs.utils
 from libs import checks
 from libs.feature_selection.forward_feature_selection import forward_feature_selection
 from libs.feature_selection.kbest import select_k_best
+from libs.feature_selection.top_correlated import select_top_correlated
 from figures import all_figures
 from figures import checks as fig_checks
 
@@ -38,9 +39,9 @@ def save(path, **kwargs):
 
 def select_features(n_dims, n_folds, y, z, nx, n1, i):
 
+    if c.learn.fs.task_corr:      return select_top_correlated(y, z, n_dims)
     if c.learn.fs.greedy_forward: return forward_feature_selection(n_dims, n_folds, y, z, nx, n1, i)
     if c.learn.fs.kbest:          return select_k_best(y, z, n_dims)
-    # if c.learn.fs.task_corr:      return select_highest_correlation(y, z, n_dims)
     if c.learn.fs.random:         return np.random.randint(0, y.shape[1], n_dims)
 
     logger.warning("Feature selection is enabled, but no method is selected. Using all features.")
@@ -59,6 +60,8 @@ def select_valid_datasets(datasets, i, k):
             S1: Smaller datasets introduce more noise when a horizon
                 crossed the gap.
     ''' 
+    if k <= 0:
+        return datasets
 
     selected = []
     for d in datasets:
@@ -75,6 +78,8 @@ def select_valid_datasets(datasets, i, k):
 
         selected += [d]
     
+    logger.info(f'Selected {len(selected)} out of {len(datasets)} datasets ')
+
     return selected
 
 
@@ -140,13 +145,13 @@ def fit_and_score(z, y, nx, n1, i, save_path):
             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
             z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
  
-            print('LR: ', end='')
-            for idim in np.arange(z_train.shape[1]):
-                lr = LinearRegression() 
-                lr = lr.fit(y_train, z_train[:, idim])
-                r = lr.score(y_test, z_test[:, idim])
-                print(f' {r:.2f}', end='')
-            print('\n')
+            # print('LR: ', end='')
+            # for idim in np.arange(z_train.shape[1]):
+            #     lr = LinearRegression() 
+            #     lr = lr.fit(y_train, z_train[:, idim])
+            #     r = lr.score(y_test, z_test[:, idim])
+            #     print(f' {r:.2f}', end='')
+            # print('\n')
 
             # TODO: THIS doesnt seem to select on training data!!!
             features = select_features(n_dims, n_inner_folds, y_train, z_train, nx, n1, i) \
@@ -210,14 +215,18 @@ def fit(datasets, save_path):
         if (nx < n1) or (n1 > i*n_z):
             continue
         
-        # if not c.debug.go:
+        # TODO: If going for separate sets, the code needs updating
+        datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)  # Set to <= 0 for all sets
+
         if True:
-            # TODO: If going for separate sets, the code needs updating
-            # TODO: I think this is now handled ealier
-            datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
-            # if i == min(horizons):
-            if True:
-                fig_checks.plot_datasets(datasets, target_kinematics)
+            fig_checks.plot_datasets(datasets, target_kinematics)
+
+        # # if not c.debug.go:
+        # if True:
+        #     datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
+        #     # if i == min(horizons):
+        #     if True:
+        #         fig_checks.plot_datasets(datasets, target_kinematics)
             
         y = np.vstack([s.eeg for s in datasets])
         z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])

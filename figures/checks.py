@@ -1,4 +1,5 @@
 import csv  # TEMP
+import re
 
 import logging
 from dataclasses import fields
@@ -243,17 +244,17 @@ def load_locations(path):
 
 
 def check_used_data(path):
-    import ast # TMP
-
-
     ppt = 'kh042'
     mapping = load_locations(Path(f"/home/coder/project/data/{ppt}/electrode_locations.csv"))
     ch_names = list(mapping.keys())
+    
+    lst = "[ 42  47  45  96  14  81  95  59  60  48   5  44  27  26  40  25 100  11 43 101 103 102  49 104 110 105 109 106 108 107]"
+    # lst = "[49 43 40 44 48 45 46 47 25 42 95 81 0 80 41 20 1 13 24 79 99 77 19 51 21 36 78 50 94 15]"
+    
+    selected_chs = [int(ch) for ch in re.findall('[0-9]+', lst)]
+    # selected_chs = ast.literal_eval(lst.replace(' ', ','))
 
-    lst = "[49 43 40 44 48 45 46 47 25 42 95 81 0 80 41 20 1 13 24 79 99 77 19 51 21 36 78 50 94 15]"
-    selected_chs = ast.literal_eval(lst.replace(' ', ','))
-
-    path = Path("/home/coder/project/results/20221207_0215/3_3_10")
+    path = Path("/home/coder/project/results/20221209_0217/3_3_10")
     m, z, y, zh, yh, xh = load(path)
     yh = yh.squeeze()
     
@@ -271,7 +272,7 @@ def check_used_data(path):
     fig.legend()
     fig.suptitle('Reconstructed Neural data of top N selected channels')
     # fig.tight_layout()
-    fig.savefig('Reconstructed_neural_data.png')
+    fig.savefig(f'{path}/Reconstructed_neural_data.png')
 
     fig, ax = plt.subplots(nrows=5, ncols=1, figsize=(10, 15))
     for i, ch in enumerate(selected_chs[:5]):
@@ -285,7 +286,7 @@ def check_used_data(path):
         ax[i].set_title(f'{ch_names[ch]}_{mapping[ch_names[ch]]}')
     fig.legend()
     fig.suptitle('Neural data and Behavior used in learning. (top 5 selected)')
-    fig.savefig('yt_zt.png')
+    fig.savefig(f'{path}/yt_zt.png')
     print('')
 
 

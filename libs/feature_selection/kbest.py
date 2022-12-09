@@ -17,12 +17,10 @@ def select_k_best(y, z, n_dims):
     scores = np.empty((z.shape[1], y.shape[1]), dtype=np.int32)
 
     for dim in np.arange(z.shape[1]):
-        cc = [pearsonr(ch, z).statistic[0] for ch in y.T]
-        scores[dim, :] = np.argsort(cc)        
         # s = SelectKBest(mutual_info_regression, k=n_dims//z.shape[1]) \
         #                .fit(y, z[:, dim])
-        # s = SelectKBest(f_regression, k=n_dims//z.shape[1]) \
-        #                .fit(y, z[:, dim])
+        s = SelectKBest(f_regression, k=n_dims//z.shape[1]) \
+                       .fit(y, z[:, dim])
         # scores[dim, :] = np.argsort(s.scores_)
 
     # Dynamic selection, in case of overlapping features

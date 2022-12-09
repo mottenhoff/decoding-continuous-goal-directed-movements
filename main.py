@@ -57,6 +57,8 @@ def setup_debug(eeg, xyz):
     # data is decodable.
     #   Useful for checking things
     # Also add some time lag (3 samples in this case) to simulate some dynamics
+    logger.info('Setting up dummy data for debugging')
+
     timeshift = 3 # sample
     dims = 2
     n = 10000
@@ -83,9 +85,9 @@ def go(save_path):
     fig_checks.reset()
  
     # data_path = Path('./data/kh036/')
-    # data_path = Path('./data/kh040/')
+    data_path = Path('./data/kh040/')
     # data_path = Path('./data/kh041/')
-    data_path = Path('./data/kh042/')
+    # data_path = Path('./data/kh042/')
 
     filenames = [p for p in data_path.glob('*.xdf')]
     
@@ -106,14 +108,12 @@ def go(save_path):
 
         # TODO: Move to debug file
         if c.debug.go and c.debug.dummy_data:
-            print('DEBUG is active!')
             eeg, xyz = setup_debug(eeg, xyz)
         
-        # Note that when combining the second loop additional channel might be removed
-        chs_to_remove = np.append(chs_to_remove, cleanup(eeg['data'], eeg['channel_names'], 
-                                                          eeg['ts'], eeg['fs'],
-                                                          pid=filename.parts[-2],
-                                                          sid=filename.stem[-1]))
+
+        flagged_channels = cleanup(eeg['data'], eeg['channel_names'], eeg['ts'], eeg['fs'],
+                                   pid=filename.parts[-2], sid=filename.stem[-1])
+        chs_to_remove = np.append(chs_to_remove, flagged_channels)
 
         # fig_checks.plot_eeg(np.delete(eeg['data'], chs_to_remove, axis=1),
         #                     np.delete(eeg['changit nel_names'], chs_to_remove),
@@ -121,6 +121,8 @@ def go(save_path):
         #                     loc_map=eeg['channel_mapping'])
 
         if c.debug.go and c.debug.short:
+            n_samples = 20000
+            logger.info(f'Shortening data for debugging to {n_samples} samples')
             eeg['data'] = eeg['data'][:20000, :]
             eeg['ts'] = eeg['ts'][:20000]
             xyz = xyz[:20000, :]
@@ -129,6 +131,7 @@ def go(save_path):
             checks.data_size_trial_vs_continuous(trials[:, 0], xyz)
 
         if c.target_vector:
+            logger.info('Calculating target vector')
             if not c.pos:
                 logger.error(f'Target vector can only be calculated if position is used as Z.')
             
@@ -145,6 +148,7 @@ def go(save_path):
 
         print('')
 
+    # TODO: To function
     chs_to_remove = np.unique(chs_to_remove)
     for ds in datasets:
         ds.eeg = np.delete(ds.eeg, chs_to_remove, axis=1)
@@ -178,13 +182,12 @@ def main():
 if __name__=='__main__':
     # path = Path('/home/coder/project/results/20221207_1730')  #Kh40
     # path = Path('/home/coder/project/results/20221207_1709')  #Kh41
-    # path = Path('/home/coder/project/results/20221207_0215')  #Kh42
+    # path = Path('/home/coder/project/results/20221209_0257')  #Kh42
     # all_figures.make_overview(path)
 # 
     # fig_checks.check_used_data('')
 
-    # main()
-
+    main()
 
     
 
