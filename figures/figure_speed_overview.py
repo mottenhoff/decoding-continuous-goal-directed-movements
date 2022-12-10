@@ -1,3 +1,5 @@
+import logging
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.gridspec import GridSpec
@@ -6,6 +8,7 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 
 from libs.load_scores import get_scores
+from libs.utils import load_yaml
 
 NAME = 0
 VALUE = 1
@@ -21,6 +24,8 @@ RMSE = 3
 LABEL_FONTSIZE = 'xx-large'
 FIG = 0
 LABEL_CBAR = 1
+
+logger = logging.getLogger(__name__)
 
 def load(path):
     # TODO: Again, copy pasted from figures_1d_score_overview.py
@@ -96,6 +101,11 @@ def state_dynamics(ax, xa, xb, s, cbar=None):
 
     x1, x2 = xa[VALUE], xb[VALUE]
     s = s.squeeze()
+
+    if any(s <= 0):
+        v = 0.1
+        logger.warning(f'Value <= 0 encountered! These value are changed to {v} for log scaling')
+        s[s<=0] = v
     
     s = np.log(s)
 
@@ -128,12 +138,15 @@ def state_dynamics(ax, xa, xb, s, cbar=None):
 
 def make(path):
 
+    folders = [d for d in path.glob('*/**') if d.is_dir()]
+    c = load_yaml(folders[0]/'config.yml')
+
     scores = get_scores(path)
 
-    # TODO: Cant handle Nx now
-    # TODO: Get options dynamically (config?)
-    n1 = ('n states [n1]', [3, 5, 10, 20, 30])
-    i  = ('Horizons', [5, 10, 25, 50, 100])
+    i  = ('Horizons', c.learn.psid.i)
+    n1 = ('n states [n1]', c.learn.psid.n1)
+    nx = ('n states [nx]', c.learn.psid.nx)
+    nx = n1 if not nx else nx
 
     cc_scores = scores[0, :, :, CC, MEAN]
     cc_max = np.where(cc_scores == np.nanmax(cc_scores))
