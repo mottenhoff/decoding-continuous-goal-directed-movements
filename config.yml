@@ -51,9 +51,13 @@ plot: 1
 
 # Preprocessing
 bands:
-  lfc:
-    - 0.1
-    - 8
+  lmp:
+    - 0
+    - 5
+
+  # lfc:
+  #   - 0.1
+  #   - 8
   # beta:
   #   - 12
   #   - 30

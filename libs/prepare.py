@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.signal import resample
 
 from libs import utils
 from figures import checks as fig_checks
@@ -84,13 +85,10 @@ def get_subset_idc(xyz, fs):
 def go(eeg, xyz):
 
     if not c.debug.go:
-        # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
-        # logger.info(f'Filtered: {c.bands.__dict__}')
-        pass
+        eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
 
     if c.target_vector:
-        # Get target_vector
-        # Stack to eeg
+        # Get target_vector, stack to eeg
         pass
 
     subset_idc = get_subset_idc(xyz, eeg['fs'])
@@ -107,25 +105,30 @@ def go(eeg, xyz):
                         channels = eeg['channel_names'],
                         mapping = eeg['channel_mapping'])
 
-        # subset.eeg = fill_missing_values(subset.eeg)
         subset.xyz = fill_missing_values(subset.xyz) # Check if this can be commented out because of nanmean
-        # subset2 = copy(subset)
-
-        if i == largest_subset:
-            # Do exploratory analysis here
-            pass
-            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=False)
-            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=True)
-
-        # Window
-        subset = get_windows(subset,
-                             c.window.length,
-                             c.window.shift)
-
-        if i == largest_subset:
-            # plot_band_correlations(subset.eeg, subset.xyz, '_windowed')
-            pass
+        
+        target_number_of_samples = int(subset.eeg.shape[0] / subset.fs / (c.window.shift * .001))
+        subset.eeg = resample(subset.eeg, target_number_of_samples, axis=0)
+        subset.xyz = resample(subset.xyz, target_number_of_samples, axis=0)
 
         subsets.append(subset)
 
     return subsets
+
+        # subset.eeg = fill_missing_values(subset.eeg)
+        # subset2 = copy(subset)
+
+        # if i == largest_subset:
+            # Do exploratory analysis here
+            # pass
+            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=False)
+            # plot_band_correlations(subset.eeg, subset.xyz, '', get_bands=True)
+
+        # Window
+        # subset = get_windows(subset,
+        #                      c.window.length,
+        #                      c.window.shift)
+
+        # if i == largest_subset:
+            # plot_band_correlations(subset.eeg, subset.xyz, '_windowed')
+            # pass

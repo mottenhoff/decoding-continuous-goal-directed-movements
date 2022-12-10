@@ -135,15 +135,15 @@ def instantaneous_powerbands(eeg, fs, bands):
                                               axis=0)[:len(x)]
 
     # Expects a [samples x channels] matrix
-    eeg = scipy.signal.detrend(eeg, axis=0)
+    # eeg = scipy.signal.detrend(eeg, axis=0)
     eeg -= eeg.mean(axis=0)
-    eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
+    # eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
 
     filtered = np.concatenate([filter_data(eeg.T, sfreq=fs,
-                                           l_freq=f[0], h_freq=f[1]).T \
+                                           l_freq=f[0] if f[0] > 0 else None, h_freq=f[1]).T \
                                for band, f in bands.items()], axis=1)
-
-    return abs(hilbert3(filtered))
+    return filtered
+    # return abs(hilbert3(filtered))
 
 if __name__=='__main__':
 
