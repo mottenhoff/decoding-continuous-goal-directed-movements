@@ -38,7 +38,3 @@ def make(path):
         figure_3d_correlation_and_reconstruction.make(path)
 
 
-if __name__=='__main__':
-    from pathlib import Path
-    path = Path('/home/coder/project/results/20221207_0215')
-    make_overview(path)

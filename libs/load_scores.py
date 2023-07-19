@@ -37,7 +37,12 @@ def get_scores(path):
     all_n1 = np.array(config.learn.psid.n1)
     all_nx = np.array(config.learn.psid.nx)
 
-    results = np.full((all_nx.size if all_nx else 1, all_n1.size, all_i.size, N_METRICS, len(SCORE_TYPES)), np.nan)
+    results = np.full((all_nx.size if all_nx else 1, 
+                       all_n1.size, 
+                       all_i.size,
+                       N_METRICS, 
+                       len(SCORE_TYPES)), # actually len(score_types) * n_kinematicss
+                       np.nan)
 
     for nx, n1, i in get_psid_params(all_nx, all_n1, all_i):
 
@@ -51,9 +56,11 @@ def get_scores(path):
             idx_n1, idx_i = np.where(all_n1 == n1), np.where(all_i==i)
 
             scores = np.load(folder/'metrics.npy')  # [repetitions, folds, metrics, z_dims]  -> reps usually 1, only used with non-deterministic processes
+            scores = scores[:, :, :, -1:]
 
             dims = scores.shape
             scores = scores.reshape(dims[REPETITIONS]*dims[FOLDS], dims[METRICS], dims[Z_DIMS])
+
 
             results[idx_nx, idx_n1, idx_i, :, :] = np.hstack((scores.mean(axis=0),
                                                               scores.std(axis=0)))

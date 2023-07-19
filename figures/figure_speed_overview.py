@@ -38,18 +38,69 @@ def load(path):
 
     return m, z, y, zh, yh, xh
 
-def z_reconstruction(ax, z, zh, m):
+# def z_reconstruction(ax, z, zh, m):
+    
+#     LABEL_FONTSIZE = 'large'
+
+#     fig, ax = plt.subplots()
+
+#     n_samples = z.shape[0]
+
+#     ax.plot(z, color='k', label='z-true')
+#     ax.plot(zh, color='orange', label='z-pred')
+#     ax.set_title(f'Z reconstruction | CC={m[:, CC].mean():.2f} \u00b1 {m[:, CC].std():.2f}', fontsize=LABEL_FONTSIZE)
+#     # ax.set_xlabel(f'Time [windows]')
+#     # ax.set_xticks(np.arange(0, n_samples, 1000))
+#     ax.get_xaxis().set_visible(False)
+#     ax.set_ylabel(f'Speed', fontsize=LABEL_FONTSIZE)
+#     ax.set_xlim(0, n_samples)
+    
+#     ax.spines['top'].set_visible(False)
+#     ax.spines['bottom'].set_visible(False)
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['left'].set_visible(False)
+
+#     ax.set_xlim(1000, 2000) # Selection 1
+#     # ax.set_xlim(2000, 3000)
+#     # ax.set_xlim(2500, 3500)
+#     # ax.set_xlim(3550, 4200)
+#     ax.set_ylim(-2, 30)
+#     ax.set_xlabel('Time')
+
+#     ax.legend()
+
+#     fig.savefig('tmp.png')
+
+#     return ax
+
+def z_reconstruction(ax, z, zh, m, zoomed=False):
     
     n_samples = z.shape[0]
 
     ax.plot(z, color='k', label='z-true')
     ax.plot(zh, color='orange', label='z-pred')
+
     ax.set_title(f'Z reconstruction | CC={m[:, CC].mean():.2f} \u00b1 {m[:, CC].std():.2f}', fontsize=LABEL_FONTSIZE)
-    # ax.set_xlabel(f'Time [windows]')
+
     ax.set_xticks(np.arange(0, n_samples, 1000))
     ax.set_ylabel(f'Speed', fontsize=LABEL_FONTSIZE)
-    ax.set_xlim(0, n_samples)
+
+
+    if zoomed:
+        ax.set_xlim(1000, 5000)
+        ax.set_xticks([])
+        ax.get_xaxis().set_visible(False)
+        ax.set_ylim(-2, 30)
+        ax.tick_params('x', labelcolor='w')
+
+    else:
+        ax.set_xlabel(f'Time [windows]')
+        ax.set_xlim(0, n_samples)
     
+
+    # ax.set_xticklabels(np.arange(1000, 2000, 200))
+    ax.set_xlabel(f'\u2192 Time', fontsize=LABEL_FONTSIZE, loc='right', labelpad=-20)
+
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -75,21 +126,53 @@ def performance_landscape(ax, x, y, z):
 
     return ax
 
-def latent_states(ax, xh):
-    scale = 2
+def latent_states(ax, xh, zoomed=False):
+    if zoomed:
+        total_states = xh.shape[1]
+        # xh = xh[:, :5]
+        xh = np.hstack([xh[:, :4], xh[:, -1:]])
+
+    scale = 8
     n_states = xh.shape[1]
     states = np.arange(n_states)
 
     for i, state in enumerate(xh.T):
-        ax.plot(state-i*scale, label=f'x{i}', color='k')
-    
-    ax.set_xlabel('Time [windows]', fontsize=LABEL_FONTSIZE)
-    ax.set_ylabel('Latent states', fontsize=LABEL_FONTSIZE)
-    ax.set_yticks(-np.arange(n_states)*scale)
-    ax.set_yticklabels([f"x{s}" for s in states], fontsize=LABEL_FONTSIZE)
-    ax.set_xlim(0, xh.shape[0])
 
-    ax.set_xticks(np.arange(0, xh.shape[0], 1000))
+        if zoomed and i == 3:
+            ax.plot([], label=f'x{i}', color='k')
+            continue
+
+        ax.plot(state-i*scale, label=f'x{i}', color='k')
+
+    ax.set_yticks(-np.arange(n_states)*scale)
+    ax.set_ylabel('Latent states', fontsize=LABEL_FONTSIZE)
+
+    if zoomed:
+        ax.set_xlim(1000, 2000)
+        ax.set_xticks([])
+        ax.get_xaxis().set_visible(False)
+        ax.tick_params('x', labelcolor='w')
+        # ax.set_ylim(-8, 0)
+        ax.set_yticklabels(['x1', 'x2', 'x3', '...', f'x{total_states}'], fontsize='xx-large')
+    else:
+        ax.set_xlabel('Time [windows]', fontsize=LABEL_FONTSIZE)
+
+        ax.set_yticklabels([f"x{s}" for s in states], fontsize=LABEL_FONTSIZE)
+        ax.set_xlim(0, xh.shape[0])
+
+    ax.set_ylim(-n_states*scale-scale, scale)
+    
+
+
+
+
+    # ax.set_xlim(1000, 2000)
+    # ax.set_xticks([])
+
+    ax.set_xlabel(f'\u2192 Time', fontsize=LABEL_FONTSIZE, loc='right', labelpad=0)
+
+
+    # ax.set_xticks(np.arange(0, xh.shape[0], 1000))
 
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
@@ -137,6 +220,7 @@ def state_dynamics(ax, xa, xb, s, cbar=None):
     return ax
 
 def make(path):
+    zoomed = False
 
     folders = [d for d in path.glob('*/**') if d.is_dir()]
     c = load_yaml(folders[0]/'config.yml')
@@ -155,18 +239,23 @@ def make(path):
     nx_optimum = n1_optimum
 
     path_optimal = path/f'{nx_optimum}_{n1_optimum}_{i_optimum}/'
+    # path_optimal = path/f'5_5_10/'
     m, z, y, zh, yh, xh = load(path_optimal)  # TODO: Auto select folder with highest performance 
+
+    m = m[:, :, :, -1:]
+    z, zh = z[:, -1:], zh.squeeze()[:, -1:]
 
     fig = plt.figure(figsize=(20, 12))
     grid = GridSpec(3, 5)
 
-    z_reconstruction(fig.add_subplot(grid[:2, :3]), z.squeeze(), zh.squeeze(), m.squeeze())
+
+    z_reconstruction(fig.add_subplot(grid[:2, :3]), z.squeeze(), zh.squeeze(), m.squeeze(), zoomed=zoomed)
     performance_landscape(fig.add_subplot(grid[0, 3], projection='3d'), n1, i, ('CC',   scores[0, :, :, 0, 0]))
     performance_landscape(fig.add_subplot(grid[0, 4], projection='3d'), n1, i, ('R2',   scores[0, :, :, 1, 0]))
     performance_landscape(fig.add_subplot(grid[1, 3], projection='3d'), n1, i, ('MSE',  scores[0, :, :, 2, 0]))
     performance_landscape(fig.add_subplot(grid[1, 4], projection='3d'), n1, i, ('RMSE', scores[0, :, :, 3, 0]))
 
-    latent_states(fig.add_subplot(grid[2, :3]), xh.squeeze())
+    latent_states(fig.add_subplot(grid[2, :3]), xh.squeeze(), zoomed=zoomed)
 
     state_dynamics(fig.add_subplot(grid[2, 3]), ('x1', xh.squeeze()[:, 0]), ('x2', xh.squeeze()[:, 1]), z)
     state_dynamics(fig.add_subplot(grid[2, 4]), ('x2', xh.squeeze()[:, 1]), ('x3', xh.squeeze()[:, 2]), z, cbar=(fig, 'log(speed)'))
@@ -175,5 +264,9 @@ def make(path):
     # Some explaining overview of latent states?
 
     # fig.tight_layout()
-    fig.savefig(path/'speed_reconstruction.svg')
-    fig.savefig(path/'speed_reconstruction.png')
+    # fig.savefig(path/'speed_reconstruction.svg')
+    # fig.savefig(path/'speed_reconstruction.png')
+    fig.savefig('./figure_output/speed_reconstruction.png')
+
+    # fig.savefig('speed_reconstruction.svg')
+    # fig.savefig('speed_reconstruction.png')

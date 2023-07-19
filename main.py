@@ -14,11 +14,17 @@ import logging
 import cProfile
 import pstats
 import io
+import re
+import sys
+from multiprocessing import Process, Pool
+
 from pathlib import Path
 from datetime import datetime as dt
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
+import yaml
 
 import learner
 from libs import checks
@@ -26,6 +32,8 @@ from libs import data_cleaning
 from libs import prepare
 from libs import timeshift
 from libs import utils
+from libs import explore
+from libs.rereference import common_electrode_reference, common_average_reference
 from libs.load import go as load_leap
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import cleanup, remove_non_eeg
@@ -37,18 +45,33 @@ from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
-def setup():
-    main_path = Path(c.learn.save_path)
-    today = dt.today().strftime('%Y%m%d_%H%M')
-    path = main_path/today
+def setup(main_path, id_):
+
+    path = main_path/id_
     path.mkdir(parents=True, exist_ok=True)
+
+    i = 0
+    while True:
+        new_path = path/f'{i}'
+        
+        try:
+            new_path.mkdir(parents=False, exist_ok=False)
+            path = new_path
+            break
+        except Exception:
+            i += 1
+            continue
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.WARNING)
     
     log_filename = f'output.log'
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
                         level=logging.INFO if not c.debug.log else logging.DEBUG,
                         handlers=[
                             logging.FileHandler(path/f'{log_filename}'),
-                            logging.StreamHandler()])
+                            # logging.StreamHandler()
+                            console_handler])
 
     return path
 
@@ -81,25 +104,31 @@ def setup_debug(eeg, xyz):
 
     return eeg, xyz
 
-def go(save_path):
-    fig_checks.reset()
- 
-    # data_path = Path('./data/kh036/')
-    data_path = Path('./data/kh040/')
-    # data_path = Path('./data/kh041/')
-    # data_path = Path('./data/kh042/')
-
-    filenames = [p for p in data_path.glob('*.xdf')]
+def include(id_):
+    info = utils.load_yaml(f'./data/kh{id_:03d}/info.yaml', return_dict=True)
     
-    if not c.combine:
-        filenames = [filenames[0]]
+    if info['problems_left']:
+        return False
+    
+    return True
 
+def go(save_path, filenames, ppt_id):
+    fig_checks.reset()
+        
+    # all_trials = []
     datasets = []
     chs_to_remove = np.array([], dtype=np.int16)
+    n_targets = 0
+
+    # print(f'{filenames} ran succesfully!')
+    # return
     for filename in filenames:
         logger.info(f'Loaded {filename}')
 
-        eeg, xyz, trials = load_leap(filename) #data_path/filename)
+        eeg, xyz, trials, events = load_leap(filename) #data_path/filename)
+        eeg['id'] = ppt_id
+
+        n_targets += events.target_reached.shape[0]
 
         eeg['data'], eeg['channel_names'] = remove_non_eeg(eeg['data'], eeg['channel_names'])
 
@@ -109,16 +138,23 @@ def go(save_path):
         # TODO: Move to debug file
         if c.debug.go and c.debug.dummy_data:
             eeg, xyz = setup_debug(eeg, xyz)
-        
 
         flagged_channels = cleanup(eeg['data'], eeg['channel_names'], eeg['ts'], eeg['fs'],
                                    pid=filename.parts[-2], sid=filename.stem[-1])
+
+        # assert flagged_channels.size == 0, 'Channels are flagged!'
+            
         chs_to_remove = np.append(chs_to_remove, flagged_channels)
 
         # fig_checks.plot_eeg(np.delete(eeg['data'], chs_to_remove, axis=1),
         #                     np.delete(eeg['changit nel_names'], chs_to_remove),
         #                     f'after quality check | Removed: {[eeg["channel_names"][ch] for ch in chs_to_remove]}',
         #                     loc_map=eeg['channel_mapping'])
+
+        # Common average reference
+        # common_average = eeg['data'].mean(axis=1, keepdims=True)
+        eeg['data'] = common_average_reference(eeg['data'])
+        # eeg['data'] = common_electrode_reference(eeg['data'], eeg['channel_names'])
 
         if c.debug.go and c.debug.short:
             n_samples = 20000
@@ -139,35 +175,43 @@ def go(save_path):
             #       Supply Trial information (including a target vector?) 
             eeg['data'] = np.hstack((eeg['data'], trials[:, 1:] - xyz))
 
-        eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)
+        eeg, xyz = timeshift.shift(eeg, xyz, t=c.timeshift)  # TODO: comment out if not using
 
         # with open(f'{data_path.name}_data.npy', 'wb') as f:
         #     np.save(f, np.hstack((eeg['data'], xyz)))
+
+        # Save info
         
         datasets += prepare.go(eeg, xyz)
 
         print('')
 
-    # TODO: To function
+    # TODO: To function 
     chs_to_remove = np.unique(chs_to_remove)
     for ds in datasets:
         ds.eeg = np.delete(ds.eeg, chs_to_remove, axis=1)
         ds.channels = np.delete(ds.channels, chs_to_remove)
     
     logger.info(f'Removed {chs_to_remove.size} channels')
+    
+    with open(save_path/'info.yml', 'w+') as f:
+        info = {'ppt_id': f'kh{ppt_id:03d}',
+                'datasize': sum([d.xyz.shape[0] for d in datasets]),
+                'n_targets': n_targets}
+        yaml.dump(info, f)
+
+    explore.main(datasets, save_path)
 
     learner.fit(datasets, save_path)
 
-    # Figures over sessions
+def main(filelist: list, main_path: Path):
+    ppt_id = filelist[0].parts[-2]
+    id_ = int(re.findall(r'\d+', ppt_id)[0])
 
-    if c.figures.make_all:
-        all_figures.make_overview(save_path)
-
-def main():
-    save_path = setup()
+    save_path = setup(main_path, ppt_id)
 
     with cProfile.Profile() as pr:
-        go(save_path)
+        go(save_path, filelist, id_)
     
     s = io.StringIO()
     stats = pstats.Stats(pr, stream=s)
@@ -180,15 +224,43 @@ def main():
 
 
 if __name__=='__main__':
-    # path = Path('/home/coder/project/results/20221207_1730')  #Kh40
-    # path = Path('/home/coder/project/results/20221207_1709')  #Kh41
-    # path = Path('/home/coder/project/results/20221209_0257')  #Kh42
-    # all_figures.make_overview(path)
-# 
-    # fig_checks.check_used_data('')
 
-    main()
+    main_path = Path(c.learn.save_path)
+    today = dt.today().strftime('%Y%m%d_%H%M')
+    main_path = main_path/today
+    main_path.mkdir(parents=True, exist_ok=True)
 
+    filenames = [p for p in Path('./data/').rglob('*.xdf')]
+    
+    # Filter ppt_ids:
+    if ids := []:
+        filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
+
+    if c.combine:
+        # TODO: Switch for one or both hands.
+        files_per_ppt = defaultdict(list)
+
+        for file in filenames:
+            files_per_ppt[file.parts[-2]].append(file)
+
+        jobs = list(files_per_ppt.values())
+    else:
+        jobs = [[file] for file in filenames]
+
+    if c.parallel:
+        
+        pool = Pool(processes=5)
+        for job in jobs:
+            pool.apply_async(main, args=(job, main_path))
+        pool.close()
+        pool.join()
+
+    else:
+
+        for job in jobs:
+            main(job, main_path)  # job = [Filename, ...]
+
+    print('done')
     
 
 # Strong channel removal
@@ -196,4 +268,3 @@ if __name__=='__main__':
 # Task correlations
 # inlude hands
 # Input dimensions to 30
-

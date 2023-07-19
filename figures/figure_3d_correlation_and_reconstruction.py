@@ -123,6 +123,7 @@ def make(path):
 
 if __name__=='__main__':
     date = None  # If none, get most recent result
+    date = '20221209_0257/3_3_5'
 
     if not date:
         path = sorted([p for p in Path(conf.save_path).iterdir() \
@@ -131,3 +132,5 @@ if __name__=='__main__':
         path = Path(f"{conf.save_path}/{date}")
     
     make(path)
+
+    plt.show()

@@ -24,6 +24,7 @@ def make(path):
     z, zh = z.ravel(), zh.ravel()
     m = m.squeeze()
 
+    print(xh.shape)
     fig, ax = plt.subplots(figsize=(12, 8))
 
     ax.plot(z, label='z-true')

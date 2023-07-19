@@ -145,26 +145,19 @@ def fit_and_score(z, y, nx, n1, i, save_path):
             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
             z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
  
-            # print('LR: ', end='')
-            # for idim in np.arange(z_train.shape[1]):
-            #     lr = LinearRegression() 
-            #     lr = lr.fit(y_train, z_train[:, idim])
-            #     r = lr.score(y_test, z_test[:, idim])
-            #     print(f' {r:.2f}', end='')
-            # print('\n')
-
-            # TODO: THIS doesnt seem to select on training data!!!
             features = select_features(n_dims, n_inner_folds, y_train, z_train, nx, n1, i) \
                        if c.learn.fs.dim_reduction else np.arange(y.shape[1])
 
             y_test, y_train = y_test[:, features], y_train[:, features]
 
             id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
-            logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
+            # logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
             zh, yh, xh = id_sys.predict(y_test)
 
             metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
+
             logger.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
+            # logger.info(f'Fold {j}_{idx} | ' + ' '.join([f'dim {i}: {score:.2f}' for i, score in enumerate(metrics[0, :])]))
             # logger.info(metrics)
             results[j, idx, :, :] =              metrics
             trajectories[j, fold, :] =           zh
@@ -197,9 +190,9 @@ def fit(datasets, save_path):
     '''
 
     # Select what do decode
-    target_kinematics = np.hstack([[0, 1, 2] if c.pos else [],
-                                   [3, 4, 5] if c.vel else [],
-                                   [6] if c.speed else []]).astype(np.int16)  # Z
+    target_kinematics = np.hstack([[0, 1, 2] if c.pos   else [],
+                                   [3, 4, 5] if c.vel   else [],
+                                   [6]       if c.speed else []]).astype(np.int16)  # Z
 
 
     # sanity_check(datasets)
@@ -218,15 +211,7 @@ def fit(datasets, save_path):
         # TODO: If going for separate sets, the code needs updating
         datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)  # Set to <= 0 for all sets
 
-        if True:
-            fig_checks.plot_datasets(datasets, target_kinematics)
-
-        # # if not c.debug.go:
-        # if True:
-        #     datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)
-        #     # if i == min(horizons):
-        #     if True:
-        #         fig_checks.plot_datasets(datasets, target_kinematics)
+        # fig_checks.plot_datasets(datasets, target_kinematics)
             
         y = np.vstack([s.eeg for s in datasets])
         z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
@@ -235,10 +220,4 @@ def fit(datasets, save_path):
         path.mkdir()
         
         fit_and_score(z, y, nx, n1, i, path)
-        all_figures.make(path)  # Figures per session  # Rename to all_figures.make_session
-
-        try:
-            if c.figures.make_all:
-                pass
-        except Exception as e:
-            logger.error(e)
+        # all_figures.make(path)  # Figures per session  # Rename to all_figures.make_session

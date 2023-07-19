@@ -5,34 +5,34 @@ from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
-def select_top_correlated(y, z, n_dims):
 
-    scores = np.empty((z.shape[1], n_dims), dtype=np.int32)
+def select_top_correlated(y, z, n_features):
+    # Significantly correlated --> n_dims needs to be constant, so
+    # need to select n_highest_correlated
+    # correlations = [(i, pearsonr(ch, zdim).statistic) for i, ch in enumerate(y.T) for zdim in z.T]
+    # best_n_features = np.argsort(np.abs(correlations))[-n_features:]
 
-    for dim in np.arange(z.shape[1]):
-        cc = np.array([pearsonr(ch, z).statistic[0] for ch in y.T])
-        sorted_chs = np.argsort(np.abs(cc))
-        scores[dim, :] = sorted_chs[-n_dims:] #, np.newaxis]
+
+    # for pair in product(y.T, z.T):
+
+    corrcoefs = np.abs(np.corrcoef(np.hstack([y, z]), rowvar=False)[-z.shape[-1]:, :y.shape[1]])
+
+    # # # Highest summed correlation
+    # # max_summed_cc = np.abs(corrcoefs[:, :y.shape[1]]).sum(axis=0)
+    # # return np.argsort(max_summed_cc)[-n_features:]  
+
+    # Sort each dimension seperately
+    # sorted_ccs = np.vstack([np.argsort(np.abs(row)) for row in corrcoefs])
+    sorted_ccs = np.argsort(corrcoefs, axis=1)
+
+    # Gets highest for each dim, iteratively
+    features = set()
+    for ccs in sorted_ccs.T[::-1, :]:
+        n_to_add = min((n_features - len(features)), ccs.size)
+
+        features = features | set(ccs[:n_to_add])
         
-        logger.info(f'Selected features for dim {dim}:')
-        logger.info(' | '.join([f'{ch}: {ch_cc:.2f}' for ch, ch_cc in list(zip(sorted_chs, cc[sorted_chs]))[-n_dims:]]))
-        
-    features = np.array([], dtype=np.int16)
-
-    for fdim in np.arange(scores.shape[1]):
-        for zdim in np.arange(scores.shape[0]):
-
-            f = scores[zdim, fdim]
-
-            if f not in features:
-                features = np.append(features, f)
-            
-            if features.size == n_dims:
-                logger.info(f'selected features (ch_nums): {features}')
-                return features
-
-
-
-
-
-
+        if len(features) == n_features:
+            logger.info(f'selected features (ch_nums): {features}')
+            logger.info('Summed correlation: ' + ' | '.join([f'{c:.2f}' for c in corrcoefs[:, list(features)].sum(axis=0)]))
+            return np.array(list(features))

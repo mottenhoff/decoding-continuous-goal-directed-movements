@@ -104,7 +104,12 @@ def parse_markers(markers, ts):
         event = m[0].split(';')
         
         # TODO: check for exp start
-        if event[1] == 'new_target':
+        if event[0] == 'skip':
+            # Has to be on top, because skip event is len==0
+            # TODO. (make another test session)
+            pass
+
+        elif event[1] == 'new_target':  # [skip]  [skip]
             xyz = np.array(str_to_list(event[-1])).astype(float)
             events['t_new'] = np.vstack([events['t_new'], np.append(t, xyz)])
 
@@ -131,9 +136,7 @@ def parse_markers(markers, ts):
             xyz = np.array(str_to_list(event[-1])).astype(float)
             events['c_reset_end'] = np.vstack([events['c_reset_start'],
                                                 np.hstack([t, float(event[0]), xyz])])
-        elif event[1] == 'skip':
-            # TODO. (make another test session)
-            pass
+
 
     events = Events(events['t_new'], events['t_reached'],
                     events['c_reset_start'], events['c_reset_end'],
@@ -315,7 +318,7 @@ def go(path):
 
     fig_checks.plot_events(leap, events, trials[:, 0], markers)
 
-    return eeg, xyz, trials
+    return eeg, xyz, trials, events
 
 
 if __name__=='__main__':

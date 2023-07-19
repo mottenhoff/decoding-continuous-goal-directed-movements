@@ -9,6 +9,7 @@ import scipy.signal
 import yaml
 import mne
 from scipy import fftpack
+from scipy.signal import resample
 from mne.filter import filter_data, notch_filter
 
 # Local
@@ -41,7 +42,7 @@ def nested_dict_to_namespace(d):
     
     return SimpleNamespace(**new_dict)
 
-def load_yaml(path):
+def load_yaml(path, return_dict=False):
     """Loads the data from a .yaml file
 
     Gets the data from a .yaml file, the user should specify the full path to the file.
@@ -56,7 +57,12 @@ def load_yaml(path):
     try:
         with open(path) as file_obj:
             config = yaml.load(file_obj, Loader=yaml.FullLoader)
-        return nested_dict_to_namespace(config)
+
+        if return_dict:
+            return config
+        else:
+            return nested_dict_to_namespace(config)
+            
     except Exception:
         raise Exception('Failed to load config file from: {}.'.format(path))
 
@@ -138,12 +144,33 @@ def instantaneous_powerbands(eeg, fs, bands):
     # eeg = scipy.signal.detrend(eeg, axis=0)
     eeg -= eeg.mean(axis=0)
     # eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
-
+    # filtered = sum([filter_data(eeg.T, sfreq=fs, l_freq=f[0] if f[0] > 0 else None, h_freq=f[1]).T \
+    #                            for band, f in bands.items()])
     filtered = np.concatenate([filter_data(eeg.T, sfreq=fs,
                                            l_freq=f[0] if f[0] > 0 else None, h_freq=f[1]).T \
                                for band, f in bands.items()], axis=1)
-    return filtered
-    # return abs(hilbert3(filtered))
+    # return filtered
+    return abs(hilbert3(filtered))
+
+def downsample(signal: np.array, fs: float, target_max_freq: float, target_samples=None) -> np.array:
+    # signal: 2d array [samples x channels]
+
+    n_samples = signal.shape[0]
+    signal_time = n_samples / fs
+
+    if not target_samples:
+        new_nyquist_frequency = target_max_freq * 2
+        target_samples = int(signal_time * new_nyquist_frequency) + 1
+    
+
+    return resample(signal, target_samples, axis=0) # , window=fs*0.3
+    
+
+
+
+
+
+
 
 if __name__=='__main__':
 

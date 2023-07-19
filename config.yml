@@ -2,6 +2,7 @@ checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
+parallel: 1
 
 learn:
 
@@ -14,7 +15,7 @@ learn:
     nx: []
 
   data:
-    min_n_windows: 5
+    min_n_windows: 1
 
   cv:
     gridsearch: false
@@ -32,14 +33,14 @@ learn:
     random: false
     
 debug:
-  go: 0
+  go: 0  # Rename active
   short: 0
   dummy_data: 1
   reduce_channels: 30  # incl in dummy data
   log: 0
 
 figures:
-  make_all: 1
+  make_all: 0
   fig_1: 0
 
 missing_values:
@@ -47,7 +48,7 @@ missing_values:
   min_windows_to_incl_set: 5
 
 n_random_samples: 10
-plot: 1
+plot: 0
 
 # Preprocessing
 bands:
@@ -56,8 +57,12 @@ bands:
     - 5
 
   # lfc:
-  #   - 0.1
-  #   - 8
+  #   - 0
+  #   - 30
+  
+  # hfc:
+  #   - 30
+  #   - 200
   # beta:
   #   - 12
   #   - 30
@@ -74,8 +79,8 @@ random: 0
 save: 1
 
 # Hand kinematics
-pos: 0
-vel: 0
+pos: 1
+vel: 1
 speed: 1
 
 target_vector: 0

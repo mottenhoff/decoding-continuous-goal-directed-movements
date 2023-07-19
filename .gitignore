@@ -6,6 +6,8 @@ figures/*.png
 figures/*.svg
 figures/checks/*
 *.npy
+finished_runs/**/*
+
 
 docs/
 
