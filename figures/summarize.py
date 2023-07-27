@@ -175,7 +175,7 @@ def plot_overview(results, name):
         n_targets = np.append(n_targets, results[ppt]['n_targets'])
         paths += [path]
 
-        _, z, _, zh, _, _ = load(path)
+        _, z, _, zh, _, xh = load(path)
         zh = zh.squeeze()
 
         chance_level, permuted = calculate_chance_level(z, zh.squeeze(), n_repetitions=n_permutations)
