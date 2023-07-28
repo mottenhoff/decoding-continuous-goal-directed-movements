@@ -130,27 +130,21 @@ def window(arr: np.ndarray, ts: np.array, wl: int, ws: int, fs: int) -> np.ndarr
 
     return windows.squeeze()
 
-def instantaneous_powerbands(eeg, fs, bands):
-
-    logger.info(f'Filtering data | fs={fs}, bands: {bands}')
+def filter_eeg(eeg, fs, f_low, f_high):
+    logger.info(f'Filtering data | fs={fs} | [{f_low} - {f_high}]')
 
     if eeg.dtype is not (required_type := 'float64'):
         eeg = eeg.astype(required_type)
 
-    hilbert3 = lambda x: scipy.signal.hilbert(x, fftpack.next_fast_len(len(x)), 
-                                              axis=0)[:len(x)]
+    return filter_data((eeg - eeg.mean(axis=0)).T,
+                       sfreq=fs,
+                       l_freq=f_low if f_low > 0 else None,
+                       h_freq=f_high).T
 
-    # Expects a [samples x channels] matrix
-    # eeg = scipy.signal.detrend(eeg, axis=0)
-    eeg -= eeg.mean(axis=0)
-    # eeg = notch_filter(eeg.T, fs, np.arange(50, 201, 50)).T
-    # filtered = sum([filter_data(eeg.T, sfreq=fs, l_freq=f[0] if f[0] > 0 else None, h_freq=f[1]).T \
-    #                            for band, f in bands.items()])
-    filtered = np.concatenate([filter_data(eeg.T, sfreq=fs,
-                                           l_freq=f[0] if f[0] > 0 else None, h_freq=f[1]).T \
-                               for band, f in bands.items()], axis=1)
-    # return filtered
-    return abs(hilbert3(filtered))
+def hilbert(eeg):
+    n_samples = eeg.shape[0]
+    return abs(scipy.signal.hilbert(eeg, fftpack.next_fast_len(n_samples), axis=0)[:n_samples])
+
 
 def downsample(signal: np.array, fs: float, target_max_freq: float, target_samples=None) -> np.array:
     # signal: 2d array [samples x channels]

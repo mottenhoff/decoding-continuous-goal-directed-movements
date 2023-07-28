@@ -4,7 +4,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-def shift(eeg, xyz, t=0):
+def timeshift(eeg, xyz, t=0):
    ''' t: shift in time in ms.
    '''
 
@@ -27,3 +27,4 @@ def shift(eeg, xyz, t=0):
    logger.info(f'applied timeshift = {t} ms')
 
    return eeg, xyz
+

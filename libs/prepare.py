@@ -43,8 +43,6 @@ def get_windows(subset, wl, ws):
 
     subset.eeg = np.mean(subset.eeg, axis=1)
     subset.xyz = np.nanmean(subset.xyz, axis=1)
-    
-    print(subset.xyz.shape)
 
     if subset.xyz.ndim == 1:
         subset.xyz = subset.xyz[:, np.newaxis]
@@ -89,25 +87,33 @@ def get_subset_idc(xyz, fs):
 
     return subset_idc
 
-def go(eeg, xyz):
-
-    # filter resample
-    # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
+def go(ds):
+    '''
+    o Extract all features:
+        1. Delta activity:  < 5 Hz
+            Explicitly extract phase? https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.hilbert.html
+        2. AlphaBeta Power: 8 - 30 Hz
+        3. Broadband Gamma power: 55 - 200 Hz
     
+    o Split into subsets to address gaps in handtracking data
+        1. Get identify gaps and get start and end
+        2. split eeg and xyz
+        3. For each subset:
+            a. Fill missing values in xyz --> Or downsample, check if methods behave correctly at gaps
+            b. Downsample to (say) 20 Hz,  equalize framerates.
+    '''
+    
+    frequency_delta = [0, 5]
+    frequency_ab    = [8 - 30]
+    frequency_bbhg  = [55 - 200]
 
-    # eeg['data'] -= eeg['data'].mean(axis=0)
-    # eeg['data'] = filter_data(eeg['data'].T, sfreq=eeg['fs'], l_freq=c.bands.__dict__)
+    delta_activity =   filter_eeg(ds.eeg.timeseries, ds.eeg.fs, frequency_delta[0], frequency_delta[1]))
+    alpha_beta_power = hilbert(filter_eeg(ds.eeg.timeseries, ds.eeg.fs, frequency_ab[0],   frequency_ab[1]))
+    bbhg_power =       hilbert(filter_eeg(ds.eeg.timeseries, ds.eeg.fs, frequency_bbhg[0], frequency_bbhg[1]))
+
 
     # # window
-
-    if not c.debug.go:
-        # eeg['data'] = utils.instantaneous_powerbands(eeg['data'], eeg['fs'], c.bands.__dict__)
-        pass
-
-    if c.target_vector:
-        # Get target_vector, stack to eeg
-        pass
-
+    # TODO: CONTINUE HERE
     subset_idc = get_subset_idc(xyz, eeg['fs'])
 
     # largest_subset = np.argmax([s[1]-s[0] for s in subset_idc])

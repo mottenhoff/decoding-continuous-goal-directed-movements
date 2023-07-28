@@ -141,7 +141,10 @@ def plot_gap_cuts(xyz, idc, subset_idc):
         plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
     plt.savefig(f'./figures/checks/gap_cuts.svg')
 
-def plot_events(xyz, events, trials, markers):
+def plot_events(dataset):
+
+    xyz, events, trials = dataset.xyz, dataset.events, dataset.trials[:, 0]
+
     cmap = get_cmap('tab20')
 
     ts = xyz['ts'] - xyz['ts'][0]

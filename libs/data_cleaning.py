@@ -9,17 +9,7 @@ from libs.check_quality import QualityChecker
 
 logger = logging.getLogger(__name__)
 
-def local_outlier_factor(eeg, k=None):
-
-    k = 20 if not k else k
-
-    lof = LocalOutlierFactor(n_neighbors=k)
-    flags = lof.fit_predict(eeg)
-    print(zip(flags, lof.negative_outlier_factor_))
-    return flags
-
-
-def flag_irrelevant_channels(qc, eeg, channel_names, plot=True):
+def flag_non_eeg(qc, eeg, channel_names, plot=True):
     return np.concatenate([
             qc.get_marker_channels(eeg, channel_names, plot=plot),
             qc.get_ekg_channel(eeg, channel_names, plot=plot),
@@ -39,30 +29,23 @@ def get_hand_selected(channels, ppt_id, session_id):
 
     return flagged
 
-
-
-def cleanup(eeg, channels, ts, fs, pid, sid, plot=False):
-
+def flag_irrelevant_channels(eeg):
+    
     qc = QualityChecker()
+    
+    # Check if data is valid
+    qc.consistent_timestamps(eeg.timestamps, eeg.fs)
+    
+    # Remove non-eeg channels
+    flagged = flag_non_eeg(qc, eeg.timeseries, eeg.channels)
+    flagged_names = [eeg.channels[flag] for flag in flagged]
 
-    invalid_timestamps = qc.consistent_timestamps(ts, fs, plot=plot)
+    eeg.timeseries = np.delete(eeg.timeseries, flagged, axis=1)
+    eeg.channels   = np.delete(eeg.channels, flagged)
+    
+    # Remove empty eeg channels
+    flagged_eeg = qc.flat_signal(eeg.timeseries, channel_names=eeg.channels)
 
-    flags_flat = qc.flat_signal(eeg, channel_names=channels, plot=plot)
-    # flags_line = qc.excessive_line_noise(eeg, fs, plot=True, channel_names=channels)
-    # flags_aa = qc.abnormal_amplitude(seeg, plot=True, channel_names=channels)
-    # flags_lof = local_outlier_factor(seeg)
-    # flags_hand = get_hand_selected(channels, pid, sid)
+    logger.info(f'Removed non-eeg: {flagged_names}, Flagged empty eeg: {[f"{flag}: {eeg.channels[flag]}" for flag in flagged_eeg]}')
 
-    return flags_flat.astype(np.int16)
-    # return np.hstack((flags_flat, flags_line)).astype(np.int16)
-    # return np.hstack((irrelevant_channels, flags_flat, flags_line, flags_aa, flags_hand)).astype(np.int16)
-
-def remove_non_eeg(eeg, channels, plot=False):
-    qc = QualityChecker()
-
-    flagged = flag_irrelevant_channels(qc, eeg, channels, plot=plot)
-    eeg = np.delete(eeg, flagged, axis=1)
-    channels = np.delete(channels, flagged)    
-
-    logger.info(f'Removing non-eeg channels: {flagged}')
-    return eeg, channels
+    return eeg, flagged_eeg

@@ -2,7 +2,7 @@ checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
-parallel: 1
+parallel: 0
 
 learn:
 
@@ -33,7 +33,7 @@ learn:
     random: false
     
 debug:
-  go: 0  # Rename active
+  active: 0  # Rename active
   short: 0
   dummy_data: 1
   reduce_channels: 30  # incl in dummy data
@@ -51,24 +51,24 @@ n_random_samples: 10
 plot: 0
 
 # Preprocessing
-bands:
-  lmp:
-    - 0
-    - 5
+# bands:
+#   lmp:
+#     - 0
+#     - 5
 
-  # lfc:
-  #   - 0
-  #   - 30
+#   # lfc:
+#   #   - 0
+#   #   - 30
   
-  # hfc:
-  #   - 30
-  #   - 200
-  # beta:
-  #   - 12
-  #   - 30
-  # hg:
-  #   - 55
-  #   - 95
+#   # hfc:
+#   #   - 30
+#   #   - 200
+#   # beta:
+#   #   - 12
+#   #   - 30
+#   # hg:
+#   #   - 55
+#   #   - 95
 
 window:
   go: 1

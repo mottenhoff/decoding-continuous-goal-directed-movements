@@ -12,7 +12,9 @@ from libs.read_xdf import read_xdf
 from libs import plotting
 from libs import utils
 from libs import kinematics as kin
-from figures import checks as fig_checks
+from libs import debug
+from figures.checks import plot_events
+
 
 logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
@@ -23,7 +25,23 @@ LEAP_COMPLETE_HAND_XYZ_IDC = [7, 8, 9,
                               19, 20, 21,
                               23, 24, 25,
                               27, 28, 29]
-PLOT = True
+
+@dataclass
+class Dataset:
+    ppt_id: int
+    eeg: dataclass
+    xyz: np.array
+    trials: np.array
+    events: dataclass
+
+@dataclass
+class Eeg:
+    timeseries: np.array
+    timestamps: np.array
+    fs: float
+    total_time: float
+    channels: np.array
+    channel_map: dict
 
 @dataclass
 class Events:
@@ -35,6 +53,8 @@ class Events:
     off_target: np.array
     # skip: np.array
 
+    # def __repr__(self):
+    #     return '\n'.join([f'{field}={field.shape}'for field in fields(self)])
 
 def load_locations(path):
     if not path.exists():
@@ -45,7 +65,6 @@ def load_locations(path):
         data = {row['electrode_name_1']: row['location'] for row in reader}
 
     return data
-
 
 def locate_pos(ts, target_ts):
     pos = bisect_right(ts, target_ts)
@@ -172,7 +191,6 @@ def fix_too_many_trial_starts(start, end):
 
     return start
 
-
 def get_trials(leap, events):
     # trials from new_target to target_reached
     t_start_idc = np.array([locate_pos(leap['ts'], nt) for nt in events.target_new[:, 0]])
@@ -218,7 +236,6 @@ def get_kinematics(xyz, ts):
     spe = kin.vector_length(vel)[:, np.newaxis]
 
     return np.hstack((xyz, vel, spe))
-
 
 def get_target_per_sample(trial_nums, targets):
     ''' points: 3d cursor coordinates
@@ -286,7 +303,7 @@ def leap_to_bubble_space(xyz, fn_t):
     
     return xyz
 
-def go(path):
+def load_dataset(path, ppt_id):
        
     data, _ = read_xdf(path)
     leap = data['LeapLSL']
@@ -316,9 +333,19 @@ def go(path):
 
     eeg['channel_mapping'] = load_locations(path.parent/'electrode_locations.csv')
 
-    fig_checks.plot_events(leap, events, trials[:, 0], markers)
+    eeg = Eeg(eeg['data'], eeg['ts'], eeg['fs'], 
+              eeg['total_stream_time'], eeg['channel_names'], eeg['channel_mapping'])
 
-    return eeg, xyz, trials, events
+
+    if c.debug.active and c.debug.short:
+        debug.shorten_dataset(eeg, xyz)
+
+    dataset = Dataset(ppt_id, eeg, xyz, trials, events)
+
+
+    # plot_events(dataset)
+
+    return dataset
 
 
 if __name__=='__main__':
