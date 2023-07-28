@@ -9,7 +9,7 @@ import numpy as np
 # from pandas import DataFrame
 
 from libs import utils
-from libs.kinematics import velocity, vector_length
+# from libs.kinematics import velocity, vector_length
 
 logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')

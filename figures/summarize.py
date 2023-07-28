@@ -11,7 +11,7 @@ try:
 except ModuleNotFoundError:
     import maps
 
-Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'speed']  
+Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']  
 N_FOLDS = 5
 N_SCORES = 3  # CC, n_samples, n_targets
 
@@ -44,8 +44,10 @@ def get_results(path_main, skip=False):
         if Path(run/'profile.prof') not in run.iterdir():
             continue
 
-        with open(run/'info.yml') as f:
-            run_info = yaml.load(f, Loader=yaml.FullLoader)
+        # with open(run/'info.yml') as f:
+        #     run_info = yaml.load(f, Loader=yaml.FullLoader)
+        run_info = {'datasize': -1,
+                    'n_targets': 50}
         
         with open(f'./data/{ppt_id}/info.yaml') as f:
             recording_info = yaml.load(f, Loader=yaml.FullLoader)
@@ -54,7 +56,7 @@ def get_results(path_main, skip=False):
             print(f'Skipping {ppt_id}')
             continue
 
-        scores = np.empty((0, 5, 4, 7))
+        scores = np.empty((0, 5, 4, 12))
         paths = np.array([])
         for result in run.iterdir():
             
@@ -147,6 +149,7 @@ def plot_states_and_horizons(paths, scores):
     return
 
 def plot_overview(results, name):
+    n_metrics = 12
 
     # cosine_similarity = lambda signal1, signal2: np.dot(signal1, signal2) / (np.linalg.norm(signal1) * np.linalg.norm(signal2))
     n_permutations = 100
@@ -158,12 +161,12 @@ def plot_overview(results, name):
     colors = [maps.cmap()[maps.ppt_id()[ppt]] for ppt in ppt_ids]
 
     # Loop to guarantee correct order
-    scores = np.empty((0, 5, 7))
+    scores = np.empty((0, 5, n_metrics))
     datasizes = []
     n_targets = []
     paths = []
-    chance_levels = np.empty((0, 7))
-    all_permuted = np.empty((0, 7))
+    chance_levels = np.empty((0, n_metrics))
+    all_permuted = np.empty((0, n_metrics))
 
     for ppt in ppts:
         mean_scores = results[ppt]['scores'][:, :, CC, :].mean(axis=1)
@@ -190,7 +193,7 @@ def plot_overview(results, name):
     xlabels = [maps.ppt_id().get(ppt, ppt) for ppt in ppts]
     colors = [maps.cmap()[maps.ppt_id()[ppt]] for ppt in ppt_ids]
 
-    fig, ax = plt.subplots(nrows=2, figsize=(5, 7))
+    fig, ax = plt.subplots(nrows=2, figsize=(5, n_metrics))
     
     ax[0].bar(xticks, datasizes, color=colors)
     ax[0].spines['top'].set_visible(False)
@@ -221,7 +224,7 @@ def plot_overview(results, name):
         colors = [maps.cmap()[maps.ppt_id()[ppt]] for ppt in ppt_ids]
 
         score = scores[:, :, y]
-
+        print(score.mean(axis=1))
         # print(score.mean(axis=1), score.std(axis=1))
 
         x_ppts = np.arange(ppts.size)

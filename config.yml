@@ -2,7 +2,7 @@ checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
-parallel: 0
+parallel: 1
 
 learn:
 
@@ -31,7 +31,11 @@ learn:
     kbest: 0
 
     random: false
-    
+  
+
+downsample_rate: 20 
+
+
 debug:
   active: 0  # Rename active
   short: 0
@@ -81,7 +85,10 @@ save: 1
 # Hand kinematics
 pos: 1
 vel: 1
+acc: 1
+dist: 1
 speed: 1
+force: 1
 
 target_vector: 0
 complete_model: 0

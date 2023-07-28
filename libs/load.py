@@ -11,7 +11,7 @@ import numpy as np
 from libs.read_xdf import read_xdf
 from libs import plotting
 from libs import utils
-from libs import kinematics as kin
+from libs import kinematics
 from libs import debug
 from figures.checks import plot_events
 
@@ -31,6 +31,7 @@ class Dataset:
     ppt_id: int
     eeg: dataclass
     xyz: np.array
+    xyz_timestamps: np.array
     trials: np.array
     events: dataclass
 
@@ -227,16 +228,6 @@ def get_trials(leap, events):
     trials = np.hstack((np.expand_dims(trial_nums, axis=1), targets))
     return trials
 
-def get_kinematics(xyz, ts):
-    # TODO: Currently only works with one point
-
-    vel = kin.velocity(xyz)
-    vel = np.vstack((np.zeros(3), vel))
-
-    spe = kin.vector_length(vel)[:, np.newaxis]
-
-    return np.hstack((xyz, vel, spe))
-
 def get_target_per_sample(trial_nums, targets):
     ''' points: 3d cursor coordinates
         targets: 3d coordinates of target
@@ -324,7 +315,7 @@ def load_dataset(path, ppt_id):
     xyz = leap_to_bubble_space(leap['data'], fn_t)        
     xyz_ts = leap['ts']
 
-    xyz = get_kinematics(xyz, xyz_ts)
+    xyz = kinematics.get_all(xyz, xyz_ts)
 
     xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                            xyz, xyz_ts)
@@ -340,7 +331,7 @@ def load_dataset(path, ppt_id):
     if c.debug.active and c.debug.short:
         debug.shorten_dataset(eeg, xyz)
 
-    dataset = Dataset(ppt_id, eeg, xyz, trials, events)
+    dataset = Dataset(ppt_id, eeg, xyz, xyz_ts, trials, events)
 
 
     # plot_events(dataset)

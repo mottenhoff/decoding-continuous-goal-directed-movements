@@ -44,10 +44,19 @@ FLAGGED = 1
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
+def save_dataset_info(datasets, save_path):
+    with open(save_path/'info.yml', 'w+') as f:
+        info = {'ppt_id':    f'kh{ppt_id:03d}',
+                'datasize':  sum([d.xyz.shape[0] for d in datasets]),
+                'n_targets': sum([d.events.target_reached.shape[0] for d in datasets])}
+        yaml.dump(info, f)
+
+
+
 def run(save_path, filenames, ppt_id):
     fig_checks.reset()
         
-    
+    datasets = []
     for filename in filenames:
         logger.info(f'Loaded {filename}')
 
@@ -60,7 +69,6 @@ def run(save_path, filenames, ppt_id):
 
         plot_dataset(ds)    
 
-
         # Some optional extra features
         if c.target_vector:
             vector = target_vector(ds.eeg.timeseries, ds.trials, ds.xyz)
@@ -68,17 +76,12 @@ def run(save_path, filenames, ppt_id):
         if c.timeshift:
             ds.eeg.timeseries, ds.xyz = timeshift(ds.eeg.timeseries, ds.xyz, t=c.timeshift)
 
-        datasets += prepare.go(ds)
 
-    logger.info(f'Removed {chs_to_remove.size} channels')
-    
-    with open(save_path/'info.yml', 'w+') as f:
-        info = {'ppt_id':    f'kh{ppt_id:03d}',
-                'datasize':  sum([d.xyz.shape[0] for d in datasets]),
-                'n_targets': sum([d.events.target_reached.shape[0] for d in datasets])}
-        yaml.dump(info, f)
+        datasets += prepare.go(ds, save_path)
 
     explore.main(datasets, save_path)
+
+    save_dataset_info(datasets, save_path)
 
     learner.fit(datasets, save_path)
     

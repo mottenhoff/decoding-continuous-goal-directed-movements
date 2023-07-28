@@ -14,28 +14,31 @@ def cart_to_pol(xyz):
     theta = np.arccos(vector_length(xyz[:, :2]) / rho)  # Angle xy-plane and z
     return np.hstack((rho, phi, theta))
 
-def velocity(xyz, ts=None):
-    
-    if ts is None:
-        # Assumes equal timesteps
-        return np.diff(xyz, axis=0)
-    
-    return (np.diff(xyz, axis=0).T / np.diff(ts)).T
+def differentiate(xyz, ts):
+    # prepend a linaer extrapolation to assume contant diff in the first 2 samples
+    dx = np.diff(xyz, axis=0, prepend=xyz[:1, :] - (xyz[1,:] - xyz[0, :]))
+    dt = np.diff(ts,  axis=0, prepend=ts[0] - (ts[1] - ts[0]))[:, np.newaxis]
+
+    return dx/dt
 
 def vector_length(vec_2d):
     # Length of vector
     # = np.sqrt((xyz**2).sum(axis=1))
-    return np.linalg.norm(vec_2d, axis=1)
+    return np.linalg.norm(vec_2d, axis=1, keepdims=True)
 
-if __name__=='__main__':
-    from pathlib import Path
-    from read_xdf import read_xdf
-    
-    path = Path(r'./data/kh040/bubbles_2.xdf')
-    data = read_xdf(path)[0]['LeapLSL']
-    xyz = data['data'][:, 7:10]
-    ts =  data['ts']
+def get_all(xyz, ts):
 
-    v = velocity(xyz)
-    s = vector_length(v)
-    p = cart_to_pol(xyz)
+    velocity = differentiate(xyz, ts)
+    acceleration = differentiate(velocity, ts)
+
+    distance = vector_length(xyz)
+    speed = vector_length(velocity)
+    force = vector_length(acceleration)
+
+    return np.hstack([
+                xyz,
+                velocity,
+                acceleration,
+                distance,
+                speed,
+                force])

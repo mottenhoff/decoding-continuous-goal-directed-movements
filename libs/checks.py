@@ -8,9 +8,12 @@ from PSID.evaluation import evalPrediction as eval_prediction
 
 from libs.feature_selection.kbest import select_k_best
 from libs import utils
+from libs.prepare import fill_missing_values
 
 logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
+
+
 
 def data_size_trial_vs_continuous(trials, xyz):
 
@@ -92,3 +95,69 @@ def concatenate_vs_separate_datasets(datasets):
             logger.info(f'\tR2 [i={i}] | {"Concatenated" if opt=="con" else "Separate":>24} | y = {y_score.mean():.3f} | z = {z_score.mean():.3f}')
         logger.info(f'\tR2 [i={i}] | {"Concatenated - Separate":>24} |dy = {y_score_first - y_score.mean():.3f} |dz = {z_score_first - z_score.mean():.3f}')
         logger.info('')
+
+
+def comparing_downsampling_methods_for_behaviour(subset):
+    downsampled_windowed = get_windows(subset.ts, subset.xyz, subset.fs,
+                                        c.window.length,
+                                        c.window.shift)
+    downsampled_fft = libs.utils.downsample(fill_missing_values(subset.xyz[:, 0]), subset.fs, 10)
+    # downsampled_decimate = decimate
+    downsampled_ts = np.linspace(subset.ts[0], subset.ts[-1], downsampled_fft.shape[0])
+    downsampled_ts_win = np.linspace(subset.ts[0], subset.ts[-1], downsampled_windowed.shape[0])
+
+
+    xyz = fill_missing_values(subset.xyz)
+    n_samples_at_new_frequency = round((subset.eeg.shape[0]/subset.fs) * 20)
+    downsample_simple = np.linspace(0, subset.eeg.shape[0]-1, n_samples_at_new_frequency).round(0).astype(int)
+    xyz = xyz[downsample_simple, :]
+
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(16, 9))
+    for row in range(3):
+
+        ax[row].scatter(subset.ts, fill_missing_values(subset.xyz[:, 0]), s=1, color='r')
+        ax[row].scatter(subset.ts, subset.xyz[:, 0], s=1, color='b')
+        ax[row].plot(downsampled_ts, downsampled_fft[:, 0], color='g')
+        ax[row].plot(downsampled_ts_win, downsampled_windowed[:, 0], color='y')
+        ax[row].scatter(subset.ts[downsample_simple], xyz[:, 0], s=1, color='purple')
+
+        if row==1:
+            ax[row].set_xlim(subset.ts[0], subset.ts[5000])
+        elif row==2:
+            ax[row].set_xlim(subset.ts[-5000], subset.ts[-1])
+    fig.tight_layout()
+    fig.savefig('./figures/checks/downsampling_methods_for_behaviour.png')
+    fig.savefig('./figures/checks/downsampling_methods_for_behaviour.svg')
+
+
+def comparing_downsampling_methods_for_eeg(subset):
+    downsampled_windowed = get_windows(subset.ts, subset.eeg, subset.fs,
+                                    c.window.length,
+                                    c.window.shift)
+    downsampled_fft = libs.utils.downsample(fill_missing_values(subset.eeg[:, 0]), subset.fs, 10)
+    # downsampled_decimate = decimate
+    downsampled_ts = np.linspace(subset.ts[0], subset.ts[-1], downsampled_fft.shape[0])
+    downsampled_ts_win = np.linspace(subset.ts[0], subset.ts[-1], downsampled_windowed.shape[0])
+
+
+    # xyz = fill_missing_values(subset.xyz)
+    n_samples_at_new_frequency = round((subset.eeg.shape[0]/subset.fs) * 20)
+    downsample_simple = np.linspace(0, subset.eeg.shape[0]-1, n_samples_at_new_frequency).round(0).astype(int)
+    eeg = subset.eeg[downsample_simple, :]
+
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(16, 9))
+    for row in range(3):
+
+        ax[row].scatter(subset.ts, fill_missing_values(subset.eeg[:, 0]), s=1, color='r')
+        ax[row].scatter(subset.ts, subset.eeg[:, 0], s=1, color='b')
+        ax[row].plot(downsampled_ts, downsampled_fft[:, 0], color='g')
+        ax[row].plot(downsampled_ts_win, downsampled_windowed[:, 0], color='y')
+        ax[row].scatter(subset.ts[downsample_simple], eeg[:, 0], s=1, color='purple')
+
+        if row==1:
+            ax[row].set_xlim(subset.ts[0], subset.ts[5000])
+        elif row==2:
+            ax[row].set_xlim(subset.ts[-5000], subset.ts[-1])
+    fig.tight_layout()
+    fig.savefig('./figures/checks/downsampling_methods_for_eeg.png')
+    fig.savefig('./figures/checks/downsampling_methods_for_eeg.svg')

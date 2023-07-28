@@ -157,7 +157,7 @@ def downsample(signal: np.array, fs: float, target_max_freq: float, target_sampl
         target_samples = int(signal_time * new_nyquist_frequency) + 1
     
 
-    return resample(signal, target_samples, axis=0) # , window=fs*0.3
+    return resample(signal, target_samples, axis=0)
     
 
 

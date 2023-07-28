@@ -130,7 +130,7 @@ def plot_target_vector(xyz, trials):
 
     fig.savefig('./figures/checks/target_vector.png')
 
-def plot_gap_cuts(xyz, idc, subset_idc):
+def plot_gap_cuts(xyz, idc, subset_idc, save_path=None):
     # Green = Start of gap
     # Red = End of gap
     plt.figure(figsize=(16,12))
@@ -139,7 +139,14 @@ def plot_gap_cuts(xyz, idc, subset_idc):
     for si, ei in subset_idc:
         plt.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
         plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
-    plt.savefig(f'./figures/checks/gap_cuts.svg')
+
+    if save_path:
+        path = save_path/'gap_cuts'
+    else:
+        path = f'./figures/checks/gap_cuts'
+
+    plt.savefig(str(path) + '.svg')
+    plt.savefig(str(path) + '.png')
 
 def plot_events(dataset):
 

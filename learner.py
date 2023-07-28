@@ -192,7 +192,10 @@ def fit(datasets, save_path):
     # Select what do decode
     target_kinematics = np.hstack([[0, 1, 2] if c.pos   else [],
                                    [3, 4, 5] if c.vel   else [],
-                                   [6]       if c.speed else []]).astype(np.int16)  # Z
+                                   [6, 7, 8] if c.acc   else [],
+                                   [9]       if c.dist  else [],
+                                   [10]      if c.speed else [],
+                                   [11]      if c.force else []]).astype(np.int16)
 
 
     # sanity_check(datasets)
@@ -220,4 +223,3 @@ def fit(datasets, save_path):
         path.mkdir()
         
         fit_and_score(z, y, nx, n1, i, path)
-        # all_figures.make(path)  # Figures per session  # Rename to all_figures.make_session
