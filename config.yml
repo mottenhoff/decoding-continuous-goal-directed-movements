@@ -33,7 +33,7 @@ learn:
     random: false
   
 
-downsample_rate: 20 
+downsample_rate: 20
 
 
 debug:
