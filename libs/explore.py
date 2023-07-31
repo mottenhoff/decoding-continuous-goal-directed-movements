@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def task_correlations(datasets, savepath):
     
@@ -16,6 +16,8 @@ def task_correlations(datasets, savepath):
 
 def main(data, savepath):
     task_correlations(data, savepath)
-        
+    
+    plt.close('all')
+    
 
     return

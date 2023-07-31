@@ -4,6 +4,7 @@ import logging
 
 # 3th party
 import numpy as np
+import matplotlib.pyplot as plt
 
 from libs.check_quality import QualityChecker
 
@@ -23,7 +24,6 @@ def get_hand_selected(channels, ppt_id, session_id):
     chs = s[ppt_id][int(session_id)]
 
     flagged = [channels.index(ch) for ch in chs if ch in channels]
-
 
     logger.info(f"Channels flagged by hand: {chs}")
 
@@ -47,5 +47,7 @@ def flag_irrelevant_channels(eeg):
     flagged_eeg = qc.flat_signal(eeg.timeseries, channel_names=eeg.channels)
 
     logger.info(f'Removed non-eeg: {flagged_names}, Flagged empty eeg: {[f"{flag}: {eeg.channels[flag]}" for flag in flagged_eeg]}')
+
+    plt.close('all')
 
     return eeg, flagged_eeg

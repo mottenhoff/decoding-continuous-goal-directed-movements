@@ -44,11 +44,12 @@ FLAGGED = 1
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
-def save_dataset_info(datasets, save_path):
+def save_dataset_info(targets_reached, n_samples, ppt_id, save_path):
+
     with open(save_path/'info.yml', 'w+') as f:
-        info = {'ppt_id':    f'kh{ppt_id:03d}',
-                'datasize':  sum([d.xyz.shape[0] for d in datasets]),
-                'n_targets': sum([d.events.target_reached.shape[0] for d in datasets])}
+        info = {'ppt_id': ppt_id,
+                'datasize': n_samples,
+                'n_targets': targets_reached}
         yaml.dump(info, f)
 
 
@@ -57,6 +58,7 @@ def run(save_path, filenames, ppt_id):
     fig_checks.reset()
         
     datasets = []
+    n_targets, n_samples = 0, 0
     for filename in filenames:
         logger.info(f'Loaded {filename}')
 
@@ -76,12 +78,13 @@ def run(save_path, filenames, ppt_id):
         if c.timeshift:
             ds.eeg.timeseries, ds.xyz = timeshift(ds.eeg.timeseries, ds.xyz, t=c.timeshift)
 
-
-        datasets += prepare.go(ds, save_path)
+        n_targets  += ds.events.target_reached.shape[0]
+        n_samples += ds.xyz[~np.isnan(ds.xyz[:, 0]), 0].size
+        datasets  += prepare.go(ds, save_path)
 
     explore.main(datasets, save_path)
 
-    save_dataset_info(datasets, save_path)
+    save_dataset_info(n_targets, n_samples, ds.ppt_id, save_path)
 
     learner.fit(datasets, save_path)
     
