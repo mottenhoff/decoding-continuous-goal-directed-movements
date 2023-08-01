@@ -88,12 +88,14 @@ def plot_overview(path):
     MEAN, STD = 0, 1
     cmap = cm.batlow
     METRIC = 0  # [CC, R2, MSE, RMSE]
+
     results = get_results(path)
 
     # a = [(ppt, result['scores']) for ppt, result in results.items()]
     # a[0][1][:, :, 0, :].mean(axis=1).max(axis=0)
 
     scores = []
+    best_paths = []
     for ppt, result in results.items():
         score = result['scores']
 
@@ -112,6 +114,7 @@ def plot_overview(path):
             max_std =  score[best_params[0], :, METRIC, best_params[1]].std(axis=1)
 
         scores += [(ppt, np.vstack([max_mean, max_std]))]
+        best_paths += [result['paths'][best_params]]
 
     scores = sorted(scores)
     ppts =   [score[0] for score in scores]
@@ -159,5 +162,5 @@ def plot_overview(path):
     fig.subplots_adjust(wspace=0.05)
     fig.savefig('figure_output/decoder_scores.png')
         
-    return
+    return best_paths, scores
  

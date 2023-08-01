@@ -30,6 +30,7 @@ if __name__=='__main__':
 
     path = Path('./results/new_method')
     # path = Path('/home/coder/project/results/20230801_1110')
-    plot_decoding_scores.plot_overview(path)
+    best_paths, scores = plot_decoding_scores.plot_overview(path)
 
     # summarize.main(Path('./results/combined'))
+    print('')
