@@ -11,7 +11,7 @@ try:
 except ModuleNotFoundError:
     import maps
 
-Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']  
+Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']
 N_FOLDS = 5
 N_SCORES = 3  # CC, n_samples, n_targets
 
