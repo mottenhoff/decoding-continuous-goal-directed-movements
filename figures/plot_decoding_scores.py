@@ -83,46 +83,81 @@ def calculate_chance_level(z, zh, alpha=0.05, block_size=.1, n_repetitions=10000
 
 def plot_overview(path):
     Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']
+    col_titles = ['X', 'Y', 'Z', r'$\sum$']
+    row_titles = ['Position', 'Velocity', 'Acceleration']
+    MEAN, STD = 0, 1
+    cmap = cm.batlow
     METRIC = 0  # [CC, R2, MSE, RMSE]
     results = get_results(path)
 
     # a = [(ppt, result['scores']) for ppt, result in results.items()]
     # a[0][1][:, :, 0, :].mean(axis=1).max(axis=0)
 
-    scores = np.empty((0, 13))
+    scores = []
     for ppt, result in results.items():
         score = result['scores']
-        metric_max = score[:, :, METRIC, :].mean(axis=1).max(axis=0)
 
-        scores = np.vstack([scores, np.hstack([ppt, metric_max])])
+        if summed_cc := True:
+            # Select on highest summed CC over kinematics
+            best_params = score[:, :, METRIC, :].mean(axis=1).sum(axis=1).argmax()  
+            max_mean = score[best_params, :, METRIC, :].mean(axis=0)
+            max_std =  score[best_params, :, METRIC, :].std(axis=0)
+        
+        else:
+            # Select on highest CC per individual kinematics
+            #   i.e. varying parameters per kinematic.
+            #   TODO: !! Probably Wrong!
+            best_params = np.where(score[:, :, METRIC, :].mean(axis=1) == score[:, :, METRIC, :].mean(axis=1).max(axis=0))
+            max_mean = score[best_params[0], :, METRIC, best_params[1]].mean(axis=1)
+            max_std =  score[best_params[0], :, METRIC, best_params[1]].std(axis=1)
 
-    scores = scores[np.argsort(scores[:, 0]), :]  # Sort by ppt_id
+        scores += [(ppt, np.vstack([max_mean, max_std]))]
+
+    scores = sorted(scores)
+    ppts =   [score[0] for score in scores]
+    scores = np.dstack([score[1] for score in scores]).transpose(2, 1, 0)
 
     order = np.array([['pos_x', 'pos_y', 'pos_z', 'dist'],
                       ['vel_x', 'vel_y', 'vel_z', 'speed'],
                       ['acc_x', 'acc_y', 'acc_z', 'force']])
     fig_shape = order.shape
 
-    xticks = np.arange(scores.shape[0])
-    colors = [cm.batlow(int(i)) for i in np.linspace(0, 255, scores.shape[0])]
+    xticks = np.arange(len(ppts))
+    colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppts))]
 
     fig, ax = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(16, 9))
-    for n, (idx, score_name) in enumerate(zip(np.ndindex(*fig_shape), order.flatten()), start=1):
-        ax[idx].bar(xticks, scores[:, Y_DIMS.index(score_name)+1].astype(np.float32), color=colors)
+    for idx, score_name in zip(np.ndindex(*fig_shape), order.flatten()):
+        mean = scores[:, Y_DIMS.index(score_name), MEAN]
+        std =  scores[:, Y_DIMS.index(score_name), STD]
+        ax[idx].bar(xticks, mean, color=colors, yerr=std)
         
-        ax[idx].set_title(score_name)
+        # ax[idx].set_title(score_name)  # Sanity check
         ax[idx].spines['top'].set_visible(False)
         ax[idx].spines['right'].set_visible(False)
+        ax[idx].spines['left'].set_visible(False if idx[1] != 0 else True)
+        ax[idx].set_xticks(np.arange(len(ppts)))
         ax[idx].set_xticklabels([])
+        ax[idx].set_yticklabels([])
         ax[idx].set_ylim(0, 1)
 
-        if idx[0] == order.shape[0]-1: # Bottom
-            ax[idx].set_xticks(np.arange(scores.shape[0]))
-            ax[idx].set_xticklabels([s.split('_')[0] for s in scores[:, 0]], fontsize='small', rotation=45, ha='right')
+        ax[idx].set_axisbelow(True)
+        ax[idx].yaxis.grid()
 
-        if idx[1] == 0:  # left side
-            ax[idx].set_ylabel('CC', fontsize='x-large')
-        
+        if idx[0] == 0:  # Top row
+            ax[idx].set_title(col_titles[idx[1]], fontsize='xx-large')
+
+        if idx[0] == order.shape[0]-1: # Bottom row
+            ax[idx].set_xticks(np.arange(scores.shape[0]))
+            ax[idx].set_xticklabels([ppt.split('_')[0] for ppt in ppts], fontsize='small', rotation=45, ha='right')
+
+        if idx[1] == 0:  # Left column
+            ax[idx].set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            ax[idx].set_yticklabels([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            ax[idx].set_ylabel(f'{row_titles[idx[0]]}\nCC', fontsize='x-large')
+    
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0.05)
     fig.savefig('figure_output/decoder_scores.png')
         
     return
+ 

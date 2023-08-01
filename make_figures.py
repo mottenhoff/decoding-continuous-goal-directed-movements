@@ -29,6 +29,7 @@ if __name__=='__main__':
     # summarize.main(Path('./results/20230728_1700'))
 
     path = Path('./results/new_method')
+    # path = Path('/home/coder/project/results/20230801_1110')
     plot_decoding_scores.plot_overview(path)
 
     # summarize.main(Path('./results/combined'))
