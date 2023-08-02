@@ -2,10 +2,11 @@ from figures import figure_3d_correlation_and_reconstruction
 from figures import figure_1d_score_overview
 from figures import figure_6d_score_overview
 
-from figures import figure_speed_overview
+from figures import plot_reconstruction_overview
 from figures.all_figures import make_overview
 
 from figures import summarize, plot_decoding_scores
+from figures import plot_significant_channels
 
 
 from libs import utils
@@ -32,5 +33,14 @@ if __name__=='__main__':
     # path = Path('/home/coder/project/results/20230801_1110')
     best_paths, scores = plot_decoding_scores.plot_overview(path)
 
+    for path in best_paths:
+        plot_reconstruction_overview.make(path)
+
+
+    # plot_significant_channels.plot(best_paths, scores)
     # summarize.main(Path('./results/combined'))
     print('')
+
+
+
+    # [] Plot speed from trial to trial.

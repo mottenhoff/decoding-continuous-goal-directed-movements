@@ -2,7 +2,7 @@ from figures import figure_3d_correlation_and_reconstruction
 from figures import figure_1d_score_overview
 from figures import figure_6d_score_overview
 
-from figures import figure_speed_overview
+from figures import plot_reconstruction_overview
 
 from libs import utils
 c = utils.load_yaml('./config.yml')

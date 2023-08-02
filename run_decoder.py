@@ -80,6 +80,7 @@ def run(save_path, filenames, ppt_id):
 
         n_targets  += ds.events.target_reached.shape[0]
         n_samples += ds.xyz[~np.isnan(ds.xyz[:, 0]), 0].size
+        
         datasets  += prepare.go(ds, save_path)
 
     explore.main(datasets, save_path)

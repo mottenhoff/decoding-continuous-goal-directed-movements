@@ -108,7 +108,7 @@ if __name__=='__main__':
 
     if c.parallel:
         
-        pool = Pool(processes=10)
+        pool = Pool(processes=5)
         for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()

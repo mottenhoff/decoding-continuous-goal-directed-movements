@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -9,6 +10,12 @@ import numpy as np
 
 from libs.load_scores import get_scores
 from libs.utils import load_yaml
+
+POS_X, POS_Y, POS_Z = 0, 1, 2
+VEL_X, VEL_Y, VEL_Z = 3, 4, 5
+ACC_X, ACC_Y, ACC_Z = 6, 7, 8
+DIST, SPEED, FORCE  = 9, 10, 11
+Z_NAMES = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']
 
 NAME = 0
 VALUE = 1
@@ -37,41 +44,6 @@ def load(path):
     xh = np.load(path/'latent_states.npy')
 
     return m, z, y, zh, yh, xh
-
-# def z_reconstruction(ax, z, zh, m):
-    
-#     LABEL_FONTSIZE = 'large'
-
-#     fig, ax = plt.subplots()
-
-#     n_samples = z.shape[0]
-
-#     ax.plot(z, color='k', label='z-true')
-#     ax.plot(zh, color='orange', label='z-pred')
-#     ax.set_title(f'Z reconstruction | CC={m[:, CC].mean():.2f} \u00b1 {m[:, CC].std():.2f}', fontsize=LABEL_FONTSIZE)
-#     # ax.set_xlabel(f'Time [windows]')
-#     # ax.set_xticks(np.arange(0, n_samples, 1000))
-#     ax.get_xaxis().set_visible(False)
-#     ax.set_ylabel(f'Speed', fontsize=LABEL_FONTSIZE)
-#     ax.set_xlim(0, n_samples)
-    
-#     ax.spines['top'].set_visible(False)
-#     ax.spines['bottom'].set_visible(False)
-#     ax.spines['right'].set_visible(False)
-#     ax.spines['left'].set_visible(False)
-
-#     ax.set_xlim(1000, 2000) # Selection 1
-#     # ax.set_xlim(2000, 3000)
-#     # ax.set_xlim(2500, 3500)
-#     # ax.set_xlim(3550, 4200)
-#     ax.set_ylim(-2, 30)
-#     ax.set_xlabel('Time')
-
-#     ax.legend()
-
-#     fig.savefig('tmp.png')
-
-#     return ax
 
 def z_reconstruction(ax, z, zh, m, zoomed=False):
     
@@ -222,51 +194,47 @@ def state_dynamics(ax, xa, xb, s, cbar=None):
 def make(path):
     zoomed = False
 
-    folders = [d for d in path.glob('*/**') if d.is_dir()]
-    c = load_yaml(folders[0]/'config.yml')
+    save_path = Path(r'./figure_output/reconstructions')  
+    save_path.mkdir(exist_ok=True, parents=True)
 
-    scores = get_scores(path)
+    ppt_id = path.parts[-3]
 
-    i  = ('Horizons', c.learn.psid.i)
+
+    c = load_yaml(path/'config.yml')
+
+    i  = ('Horizons',      c.learn.psid.i)
     n1 = ('n states [n1]', c.learn.psid.n1)
     nx = ('n states [nx]', c.learn.psid.nx)
     nx = n1 if not nx else nx
 
-    cc_scores = scores[0, :, :, CC, MEAN]
-    cc_max = np.where(cc_scores == np.nanmax(cc_scores))
-    
-    n1_optimum, i_optimum = n1[VALUE][cc_max[0][0]], i[VALUE][cc_max[1][0]]
-    nx_optimum = n1_optimum
+    metrics, zs, y, zhs, yh, xh = load(path)  # TODO: Auto select folder with highest performance 
 
-    path_optimal = path/f'{nx_optimum}_{n1_optimum}_{i_optimum}/'
-    # path_optimal = path/f'5_5_10/'
-    m, z, y, zh, yh, xh = load(path_optimal)  # TODO: Auto select folder with highest performance 
+    for dim in [DIST, SPEED, FORCE]:
+        m = metrics[:, :, :, dim]
+        z, zh = zs[:, dim], zhs.squeeze()[:, dim]
 
-    m = m[:, :, :, -1:]
-    z, zh = z[:, -1:], zh.squeeze()[:, -1:]
+        fig = plt.figure(figsize=(20, 12))
+        grid = GridSpec(3, 5)
 
-    fig = plt.figure(figsize=(20, 12))
-    grid = GridSpec(3, 5)
+        z_reconstruction(fig.add_subplot(grid[:2, :3]), z.squeeze(), zh.squeeze(), m.squeeze(), zoomed=zoomed)
 
+        # performance_landscape(fig.add_subplot(grid[0, 3], projection='3d'), n1, i, ('CC',   scores[0, :, :, 0, 0]))
+        # performance_landscape(fig.add_subplot(grid[0, 4], projection='3d'), n1, i, ('R2',   scores[0, :, :, 1, 0]))
+        # performance_landscape(fig.add_subplot(grid[1, 3], projection='3d'), n1, i, ('MSE',  scores[0, :, :, 2, 0]))
+        # performance_landscape(fig.add_subplot(grid[1, 4], projection='3d'), n1, i, ('RMSE', scores[0, :, :, 3, 0]))
 
-    z_reconstruction(fig.add_subplot(grid[:2, :3]), z.squeeze(), zh.squeeze(), m.squeeze(), zoomed=zoomed)
-    performance_landscape(fig.add_subplot(grid[0, 3], projection='3d'), n1, i, ('CC',   scores[0, :, :, 0, 0]))
-    performance_landscape(fig.add_subplot(grid[0, 4], projection='3d'), n1, i, ('R2',   scores[0, :, :, 1, 0]))
-    performance_landscape(fig.add_subplot(grid[1, 3], projection='3d'), n1, i, ('MSE',  scores[0, :, :, 2, 0]))
-    performance_landscape(fig.add_subplot(grid[1, 4], projection='3d'), n1, i, ('RMSE', scores[0, :, :, 3, 0]))
+        latent_states(fig.add_subplot(grid[2, :3]), xh.squeeze(), zoomed=zoomed)
 
-    latent_states(fig.add_subplot(grid[2, :3]), xh.squeeze(), zoomed=zoomed)
+        # state_dynamics(fig.add_subplot(grid[2, 3]), ('x1', xh.squeeze()[:, 0]), ('x2', xh.squeeze()[:, 1]), z)
+        # state_dynamics(fig.add_subplot(grid[2, 4]), ('x2', xh.squeeze()[:, 1]), ('x3', xh.squeeze()[:, 2]), z, cbar=(fig, 'log(speed)'))
 
-    state_dynamics(fig.add_subplot(grid[2, 3]), ('x1', xh.squeeze()[:, 0]), ('x2', xh.squeeze()[:, 1]), z)
-    state_dynamics(fig.add_subplot(grid[2, 4]), ('x2', xh.squeeze()[:, 1]), ('x3', xh.squeeze()[:, 2]), z, cbar=(fig, 'log(speed)'))
+        # Selected locations + explained variance or sth? -> 3D plot with highlighted electrodes
+        # Some explaining overview of latent states?
 
-    # Selected locations + explained variance or sth? -> 3D plot with highlighted electrodes
-    # Some explaining overview of latent states?
-
-    # fig.tight_layout()
-    # fig.savefig(path/'speed_reconstruction.svg')
-    # fig.savefig(path/'speed_reconstruction.png')
-    fig.savefig('./figure_output/speed_reconstruction.png')
+        # fig.tight_layout()
+        # fig.savefig(path/'speed_reconstruction.svg')
+        # fig.savefig(path/'speed_reconstruction.png')
+        fig.savefig(save_path/f'{ppt_id}_{Z_NAMES[dim]}_reconstruction.png')
 
     # fig.savefig('speed_reconstruction.svg')
     # fig.savefig('speed_reconstruction.png')

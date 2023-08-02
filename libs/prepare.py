@@ -65,9 +65,6 @@ def fill_missing_values(data):
     return pd.DataFrame(data).interpolate().to_numpy()
 
 def get_subset_idc(xyz, fs, name=None):
-
-
-
     n = c.missing_values.xyz_samples_for_gaps
 
     # Get absolute amount of samples in subset for at least 1 windows
@@ -89,7 +86,7 @@ def get_subset_idc(xyz, fs, name=None):
     return subset_idc
 
 def frequency_decomposition(eeg: np.array, fs: float):
-    frequency_delta = [0, 5]
+    frequency_delta = [0, 4]
     frequency_ab    = [8, 30]
     frequency_bbhg  = [55, 200]
 
@@ -97,7 +94,11 @@ def frequency_decomposition(eeg: np.array, fs: float):
     alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
     bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
 
-    return np.hstack([delta_activity, alpha_beta_power, bbhg_power])
+    return np.hstack([
+                     delta_activity, 
+                     alpha_beta_power, 
+                     bbhg_power
+                     ])
 
 def go(ds, save_path):
     '''
