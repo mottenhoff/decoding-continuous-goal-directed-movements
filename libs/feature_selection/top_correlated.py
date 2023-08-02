@@ -17,14 +17,12 @@ def select_top_correlated(y, z, n_features):
 
     corrcoefs = np.abs(np.corrcoef(np.hstack([y, z]), rowvar=False)[-z.shape[-1]:, :y.shape[1]])
 
-
-
-    if summed_correlation := False:
+    if summed_correlation := True:
         max_summed_cc = np.abs(corrcoefs[:, :y.shape[1]]).sum(axis=0)
         logger.info(f'Selected top summer correlation: {np.argsort(max_summed_cc)[-n_features:]}')
         return np.argsort(max_summed_cc)[-n_features:]
 
-    if top_n_per_dim := True:
+    if top_n_per_dim := False:
         sorted_ccs = np.argsort(corrcoefs, axis=1)
         # Gets highest for each dim, iteratively
         features = set()
