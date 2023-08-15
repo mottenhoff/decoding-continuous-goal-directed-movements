@@ -34,7 +34,7 @@ def get_all(xyz, ts):
     distance = vector_length(xyz)
     speed = vector_length(velocity)
     force = vector_length(acceleration)
-
+    
     return np.hstack([
                 xyz,
                 velocity,

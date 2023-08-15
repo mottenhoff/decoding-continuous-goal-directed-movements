@@ -28,7 +28,7 @@ from libs.load import load_dataset
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import flag_irrelevant_channels
 
-from figures.plot_dataset import plot_dataset
+from figures.plot_dataset import plot_dataset, plot_subsets
 
 
 
@@ -49,7 +49,8 @@ def save_dataset_info(targets_reached, n_samples, ppt_id, save_path):
     with open(save_path/'info.yml', 'w+') as f:
         info = {'ppt_id': ppt_id,
                 'datasize': n_samples,
-                'n_targets': targets_reached}
+                'n_targets': targets_reached,
+                'n_gaps': None}
         yaml.dump(info, f)
 
 
@@ -82,6 +83,8 @@ def run(save_path, filenames, ppt_id):
         n_samples += ds.xyz[~np.isnan(ds.xyz[:, 0]), 0].size
         
         datasets  += prepare.go(ds, save_path)
+
+    plot_subsets(datasets, save_path)
 
     explore.main(datasets, save_path)
 

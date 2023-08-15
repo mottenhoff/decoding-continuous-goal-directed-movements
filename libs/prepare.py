@@ -13,6 +13,7 @@ from figures import checks as fig_checks
 
 from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 
+
 START = 0
 END = 1
 
@@ -91,13 +92,13 @@ def frequency_decomposition(eeg: np.array, fs: float):
     frequency_bbhg  = [55, 200]
 
     delta_activity =   filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
-    alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
-    bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
+    # alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
+    # bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
 
     return np.hstack([
                      delta_activity, 
-                     alpha_beta_power, 
-                     bbhg_power
+                    #  alpha_beta_power, 
+                    #  bbhg_power
                      ])
 
 def go(ds, save_path):
@@ -137,6 +138,9 @@ def go(ds, save_path):
 
         subset.xyz = fill_missing_values(subset.xyz)
 
+        # TODO: Include kinematics here
+
+        
         # Downsample to 20 Hz (same as frameshift of 50ms)
         #   if signal is periodic (= eeg) then use fft downsample
         #   for xyz, interpolate linearly (reasonable assumption, since no large gaps), 
@@ -149,6 +153,7 @@ def go(ds, save_path):
         target_samples = subset.eeg.shape[0]
         samples = np.linspace(0, subset.xyz.shape[0]-1, target_samples).round().astype(int)
         subset.xyz = subset.xyz[samples, :]
+
 
         subsets.append(subset)
 

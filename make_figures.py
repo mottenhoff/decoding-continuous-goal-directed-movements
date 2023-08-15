@@ -8,7 +8,6 @@ from figures.all_figures import make_overview
 from figures import summarize, plot_decoding_scores
 from figures import plot_significant_channels
 
-
 from libs import utils
 c = utils.load_yaml('./config.yml')
 
@@ -29,12 +28,14 @@ if __name__=='__main__':
 
     # summarize.main(Path('./results/20230728_1700'))
 
-    path = Path('./results/new_method')
+    path = Path('./results/ab')
     # path = Path('/home/coder/project/results/20230801_1110')
     best_paths, scores = plot_decoding_scores.plot_overview(path)
 
+
     for path in best_paths:
-        plot_reconstruction_overview.make(path)
+        # plot_reconstruction_overview.make(path)
+        pass
 
 
     # plot_significant_channels.plot(best_paths, scores)

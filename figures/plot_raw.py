@@ -31,7 +31,7 @@ def raw_eeg(session, savepath):
 
     fig.suptitle('Raw signal')
     fig.tight_layout()
-    fig.savefig('raw_eeg.svg')
+    fig.savefig('./figure_output/raw_eeg.svg')
 
 
 def plot_task_correlation(session, savepath):
@@ -51,6 +51,6 @@ def plot_task_correlation(session, savepath):
     fig.savefig('raw_task_correlation.png')
 
 def make_all(session, savepath):
-    # raw_eeg(session, savepath)
+    raw_eeg(session, savepath)
     # plot_average_trial_per_class(session, savepath)
-    plot_task_correlation(session, savepath)
+    # plot_task_correlation(session, savepath)
