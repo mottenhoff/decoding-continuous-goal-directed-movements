@@ -44,13 +44,13 @@ FLAGGED = 1
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
-def save_dataset_info(targets_reached, n_samples, ppt_id, save_path):
+def save_dataset_info(targets_reached, n_samples, n_gaps, ppt_id, save_path):
 
     with open(save_path/'info.yml', 'w+') as f:
         info = {'ppt_id': ppt_id,
                 'datasize': n_samples,
                 'n_targets': targets_reached,
-                'n_gaps': None}
+                'n_gaps': n_gaps}
         yaml.dump(info, f)
 
 
@@ -84,11 +84,12 @@ def run(save_path, filenames, ppt_id):
         
         datasets  += prepare.go(ds, save_path)
 
-    plot_subsets(datasets, save_path)
+    n_gaps = len(datasets) - len(filenames)
+    # plot_subsets(datasets, save_path)
 
     explore.main(datasets, save_path)
 
-    save_dataset_info(n_targets, n_samples, ds.ppt_id, save_path)
+    save_dataset_info(n_targets, n_samples, n_gaps, ds.ppt_id, save_path)
 
     learner.fit(datasets, save_path)
     

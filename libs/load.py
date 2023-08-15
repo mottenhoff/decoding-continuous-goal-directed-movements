@@ -173,6 +173,14 @@ def cut_experiment(stream, cutoff):
 
     return stream
 
+def get_screen_dimensions(markers):
+
+    for marker in markers['data']:
+    
+        if 'screen_dimensions' in marker[0]:
+    
+            return list(map(int, marker[0].split(';')[1:]))
+
 def fix_too_many_trial_starts(start, end):
 
     # Delete trailing trial_starts
@@ -315,7 +323,16 @@ def load_dataset(path, ppt_id):
     xyz = leap_to_bubble_space(leap['data'], fn_t)        
     xyz_ts = leap['ts']
 
-    xyz = kinematics.get_all(xyz, xyz_ts)
+    # Center to 0, 0, 0
+    # screen_dimensions = get_screen_dimensions(markers)
+    # xyz[:, 0] -= screen_dimensions[0] / 2
+    # xyz[:, 1] -= screen_dimensions[1] / 2
+    # xyz[:, 2] -= 60
+    # NOTE: Also requires all target markers to be adjusted
+
+
+    # xyz = kinematics.get_all(xyz, xyz_ts)
+    
 
     xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                            xyz, xyz_ts)

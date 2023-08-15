@@ -150,7 +150,7 @@ def fit_and_score(z, y, nx, n1, i, save_path):
 
             y_test, y_train = y_test[:, features], y_train[:, features]
 
-            id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
+            id_sys = PSID.PSID(y_train, z_train, nx, n1, i, zscore_Y=True, zscore_Z=True)
             # logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
             zh, yh, xh = id_sys.predict(y_test)
 

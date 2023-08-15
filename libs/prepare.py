@@ -13,6 +13,7 @@ from figures import checks as fig_checks
 
 from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 
+from libs import kinematics
 
 START = 0
 END = 1
@@ -139,8 +140,8 @@ def go(ds, save_path):
         subset.xyz = fill_missing_values(subset.xyz)
 
         # TODO: Include kinematics here
+        xyz = kinematics.get_all(subset.xyz, subset.ts)
 
-        
         # Downsample to 20 Hz (same as frameshift of 50ms)
         #   if signal is periodic (= eeg) then use fft downsample
         #   for xyz, interpolate linearly (reasonable assumption, since no large gaps), 

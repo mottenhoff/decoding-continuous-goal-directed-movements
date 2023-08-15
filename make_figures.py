@@ -34,7 +34,7 @@ if __name__=='__main__':
 
 
     for path in best_paths:
-        # plot_reconstruction_overview.make(path)
+        plot_reconstruction_overview.make(path)
         pass
 
 
