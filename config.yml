@@ -2,7 +2,7 @@ checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
-parallel: 0
+parallel: 1
 
 learn:
 

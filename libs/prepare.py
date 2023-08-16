@@ -139,23 +139,12 @@ def go(ds, save_path):
 
         subset.xyz = fill_missing_values(subset.xyz)
 
-        # TODO: Include kinematics here
-        xyz = kinematics.get_all(subset.xyz, subset.ts)
+        subset.xyz = kinematics.get_all(subset.xyz, subset.ts)
 
-        # Downsample to 20 Hz (same as frameshift of 50ms)
-        #   if signal is periodic (= eeg) then use fft downsample
-        #   for xyz, interpolate linearly (reasonable assumption, since no large gaps), 
-        #            and then downsample by selecting every nth sample
-
-        # EEG
-        subset.eeg = libs.utils.downsample(subset.eeg, subset.fs, c.downsample_rate/2)
-
-        # Behaviour
-        target_samples = subset.eeg.shape[0]
-        samples = np.linspace(0, subset.xyz.shape[0]-1, target_samples).round().astype(int)
-        subset.xyz = subset.xyz[samples, :]
-
+        subset.eeg = get_windows(subset.ts, subset.eeg, subset.fs, c.window.length, c.window.shift)
+        subset.xyz = get_windows(subset.ts, subset.xyz, subset.fs, c.window.length, c.window.shift)
 
         subsets.append(subset)
 
     return subsets
+

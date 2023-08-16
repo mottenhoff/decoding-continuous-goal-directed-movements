@@ -236,6 +236,6 @@ def make(path):
         # fig.savefig(path/'speed_reconstruction.png')
         fig.savefig(save_path/f'{ppt_id}_{Z_NAMES[dim]}_reconstruction.png')
         print()
-
+        plt.close('all')
     # fig.savefig('speed_reconstruction.svg')
     # fig.savefig('speed_reconstruction.png')

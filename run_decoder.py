@@ -29,9 +29,6 @@ from libs.plotting import plot_trajectory
 from libs.data_cleaning import flag_irrelevant_channels
 
 from figures.plot_dataset import plot_dataset, plot_subsets
-
-
-
 from figures import all_figures
 from figures import checks as fig_checks
 
@@ -52,8 +49,6 @@ def save_dataset_info(targets_reached, n_samples, n_gaps, ppt_id, save_path):
                 'n_targets': targets_reached,
                 'n_gaps': n_gaps}
         yaml.dump(info, f)
-
-
 
 def run(save_path, filenames, ppt_id):
     fig_checks.reset()
@@ -93,6 +88,9 @@ def run(save_path, filenames, ppt_id):
 
     learner.fit(datasets, save_path)
     
+
+# i=0; plt.figure(); plt.plot(datasets[0].xyz[:, i]); plt.plot(datasets[0].xyz[:, i+3]); plt.plot(datasets[0].xyz[:, i+6]); plt.savefig('tmp.png')
+# plt.figure(); plt.plot(datasets[0].xyz[:, 9]); plt.plot(datasets[0].xyz[:, 10]); plt.plot(datasets[0].xyz[:, 11]); plt.savefig('tmp.png')
 
 # Strong channel removal
 # Select only beta
