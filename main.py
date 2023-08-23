@@ -92,7 +92,7 @@ if __name__=='__main__':
     filenames = [p for p in Path('./data/').rglob('*.xdf')]
     
     # Filter ppt_ids:
-    if ids := []:
+    if ids := []: # 41,  53, 50
         filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
 
     if c.combine:

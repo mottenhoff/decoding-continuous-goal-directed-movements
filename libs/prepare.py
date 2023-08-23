@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,6 +37,17 @@ def get_fft(signal, fs):
     freqs = np.fft.rfftfreq(signal.size, 1/fs)
     return freqs, powerspectrum
 
+def get_behavior_per_trial(subset):
+
+    # Get all unique trial numbers
+    trial_nums = np.unique(subset.trials[np.where(~np.isnan(subset.trials[:, 0])), 0])
+
+    # Find the start of each trial by occurence of the first appearance of the trial num
+    idc_trial_starts = [np.where(subset.trials[:, 0]==num)[0][0] for num in trial_nums]
+
+    # Slice the data based on the start index and the start of the second index.
+    return [subset.xyz[s:e, :] for s, e in zip(idc_trial_starts[:-1], idc_trial_starts[1:])]
+
 def get_windows(ts, signal, fs, wl, ws):
     size_start = signal.shape
 
@@ -66,15 +78,20 @@ def fill_missing_values(data):
 
     return pd.DataFrame(data).interpolate().to_numpy()
 
-def get_subset_idc(xyz, fs, name=None):
-    n = c.missing_values.xyz_samples_for_gaps
+def get_subset_idc(xyz, fs, dataset_num, path=None):
+
+
+
+    n = c.missing_values.xyz_samples_for_gaps  # Samples in Xyz for missing
 
     # Get absolute amount of samples in subset for at least 1 windows
     min_samples = c.window.length * 0.001 * 1024
+
     # Check if the user set amount of windows is met
     min_samples = np.ceil(c.missing_values.min_windows_to_incl_set * min_samples)
 
     idc = np.where(~np.isnan(xyz[:, 0]))[0] 
+
     diff = np.diff(idc)
     gaps = np.where(diff > n*diff.mean())[0] # about 100 samples...
 
@@ -83,7 +100,7 @@ def get_subset_idc(xyz, fs, name=None):
     subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:]) \
                                              if (idc[end_i] - idc[start_i]) > min_samples]
 
-    fig_checks.plot_gap_cuts(xyz, idc, subset_idc, name)
+    fig_checks.plot_gap_cuts(xyz, idc, subset_idc, dataset_num, path)
 
     return subset_idc
 
@@ -92,17 +109,17 @@ def frequency_decomposition(eeg: np.array, fs: float):
     frequency_ab    = [8, 30]
     frequency_bbhg  = [55, 200]
 
-    delta_activity =   filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
-    # alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
+    # delta_activity =   filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
+    alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
     # bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
 
     return np.hstack([
-                     delta_activity, 
-                    #  alpha_beta_power, 
+                    #  delta_activity, 
+                     alpha_beta_power, 
                     #  bbhg_power
                      ])
 
-def go(ds, save_path):
+def go(ds, save_path, dsi):
     '''
     o Extract all features:
         1. Delta activity:  < 5 Hz
@@ -121,9 +138,10 @@ def go(ds, save_path):
     ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
     # ds.eeg.channels = np.concatenate([list(map(lambda x: x + f'-{band}', ds.eeg.channels)) for band in ['delta', 'alphabeta', 'bbhg']])  # Uncomment if problems later
 
-    subset_idc = get_subset_idc(ds.xyz, ds.eeg.fs, name=save_path)
+    subset_idc = get_subset_idc(ds.xyz, ds.eeg.fs, dsi, path=save_path)
 
     subsets = []
+    behavior_per_trial = []
     for i, (s, e) in enumerate(subset_idc):
 
         logger.info(f'Cutting subset {i} from: {s} to {e}')
@@ -141,10 +159,17 @@ def go(ds, save_path):
 
         subset.xyz = kinematics.get_all(subset.xyz, subset.ts)
 
+        behavior_per_trial += get_behavior_per_trial(subset)
+
         subset.eeg = get_windows(subset.ts, subset.eeg, subset.fs, c.window.length, c.window.shift)
         subset.xyz = get_windows(subset.ts, subset.xyz, subset.fs, c.window.length, c.window.shift)
 
         subsets.append(subset)
+
+    with open(save_path/f'behavior_per_trial_{dsi}.pkl', 'wb') as f:
+        pickle.dump(behavior_per_trial, f)
+
+    # Quickplot: plt.close('all');plt.figure();[plt.plot(subset.xyz[:100, 10]) for subset in subsets];plt.savefig('tmp.png')
 
     return subsets
 

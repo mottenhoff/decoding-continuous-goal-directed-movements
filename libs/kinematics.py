@@ -16,8 +16,10 @@ def cart_to_pol(xyz):
 
 def differentiate(xyz, ts):
     # prepend a linaer extrapolation to assume contant diff in the first 2 samples
-    dx = np.diff(xyz, axis=0, prepend=xyz[:1, :] - (xyz[1,:] - xyz[0, :]))
-    dt = np.diff(ts,  axis=0, prepend=ts[0] - (ts[1] - ts[0]))[:, np.newaxis]
+
+    # TODO: Does prepent work?
+    dx = np.diff(xyz, axis=0, prepend=np.zeros((1, 3))) #prepend=xyz[:1, :] - (xyz[1,:] - xyz[0, :]))
+    dt = np.diff(ts,  axis=0, prepend=0)[:, np.newaxis] #prepend=ts[0] - (ts[1] - ts[0]))[:, np.newaxis]
 
     return dx/dt
 

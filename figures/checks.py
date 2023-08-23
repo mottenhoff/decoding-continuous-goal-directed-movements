@@ -130,23 +130,23 @@ def plot_target_vector(xyz, trials):
 
     fig.savefig('./figures/checks/target_vector.png')
 
-def plot_gap_cuts(xyz, idc, subset_idc, save_path=None):
+def plot_gap_cuts(xyz, idc, subset_idc, dataset_num, save_path=None):
     # Green = Start of gap
     # Red = End of gap
-    plt.figure(figsize=(16,12))
-    plt.plot(idc, xyz[idc, 0])
+    fig, ax = plt.subplots(figsize=(16,12))
+    
+    ax.plot(idc, xyz[idc, 0])
+    
     ylim_max = plt.ylim()[1]
     for si, ei in subset_idc:
-        plt.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
-        plt.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
+        ax.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
+        ax.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
 
-    if save_path:
-        path = save_path/'gap_cuts'
-    else:
-        path = f'./figures/checks/gap_cuts'
+    path = f'./figures/checks/' if not save_path else save_path
 
-    plt.savefig(str(path) + '.svg')
-    plt.savefig(str(path) + '.png')
+    fig.savefig(path/f'gap_cuts_{dataset_num}.png')
+    fig.savefig(path/f'gap_cuts_{dataset_num}.svg')
+
 
 def plot_events(dataset):
 

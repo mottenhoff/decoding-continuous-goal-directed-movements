@@ -123,7 +123,7 @@ def plot_overview(path):
     for idx, score_name in zip(np.ndindex(*fig_shape), order.flatten()):
         mean = scores[:, Y_DIMS.index(score_name), MEAN]
         std =  scores[:, Y_DIMS.index(score_name), STD]
-        ax[idx].bar(xticks, mean, color=colors, yerr=std)
+        ax[idx].bar(xticks, mean, color=colors, yerr=std)  # np.stack([(0, f) for f in std[freqs_i, :]]).T for only top errorbar
         
         # ax[idx].set_title(score_name)  # Sanity check
         ax[idx].spines['top'].set_visible(False)
@@ -151,7 +151,7 @@ def plot_overview(path):
     
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
-    fig.savefig('figure_output/decoder_scores.png')
+    fig.savefig(f'figure_output/decoder_scores_{path.stem}.png')
         
     return best_paths, scores
  

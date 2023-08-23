@@ -21,12 +21,14 @@ from libs import data_cleaning
 from libs import prepare
 from libs import utils
 from libs import explore
+from libs import dataset_info
 from libs.timeshift import timeshift
 from libs.target_vector import target_vector
 from libs.rereference import common_electrode_reference
 from libs.load import load_dataset
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import flag_irrelevant_channels
+
 
 from figures.plot_dataset import plot_dataset, plot_subsets
 from figures import all_figures
@@ -41,7 +43,8 @@ FLAGGED = 1
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
-def save_dataset_info(targets_reached, n_samples, n_gaps, ppt_id, save_path):
+def save_dataset_info(targets_reached, n_samples, n_gaps, time_between_targets, total_time,
+                      ppt_id, save_path):
 
     with open(save_path/'info.yml', 'w+') as f:
         info = {'ppt_id': ppt_id,
@@ -50,12 +53,16 @@ def save_dataset_info(targets_reached, n_samples, n_gaps, ppt_id, save_path):
                 'n_gaps': n_gaps}
         yaml.dump(info, f)
 
+    # with open(save_path/'time_between_targets.npy', 'wb') as f:
+    np.save(save_path/'time_between_targets.npy', np.concatenate(time_between_targets))
+
 def run(save_path, filenames, ppt_id):
     fig_checks.reset()
         
     datasets = []
-    n_targets, n_samples = 0, 0
-    for filename in filenames:
+    n_targets, n_samples, total_time = 0, 0, 0
+    behavior_per_trial, time_between_targets = [], []
+    for i, filename in enumerate(filenames):
         logger.info(f'Loaded {filename}')
 
         # Load and a bit of cleanup
@@ -74,18 +81,21 @@ def run(save_path, filenames, ppt_id):
         if c.timeshift:
             ds.eeg.timeseries, ds.xyz = timeshift(ds.eeg.timeseries, ds.xyz, t=c.timeshift)
 
-        n_targets  += ds.events.target_reached.shape[0]
-        n_samples += ds.xyz[~np.isnan(ds.xyz[:, 0]), 0].size
-        
-        datasets  += prepare.go(ds, save_path)
+        n_targets  += dataset_info.get_number_of_targets(ds)
+        n_samples += dataset_info.get_number_of_samples(ds)
+        time_between_targets += [dataset_info.get_time_between_targets(ds)]
+        total_time += ds.eeg.total_time
 
+        datasets  += prepare.go(ds, save_path, i)
+    
     n_gaps = len(datasets) - len(filenames)
     # plot_subsets(datasets, save_path)
 
     explore.main(datasets, save_path)
 
-    save_dataset_info(n_targets, n_samples, n_gaps, ds.ppt_id, save_path)
-
+    save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
+                      ds.ppt_id, save_path)
+    # print('')
     learner.fit(datasets, save_path)
     
 
