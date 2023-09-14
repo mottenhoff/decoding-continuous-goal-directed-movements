@@ -7,7 +7,7 @@ figures/*.svg
 figures/checks/*
 *.npy
 finished_runs/**/*
-
+move_files.sh
 
 docs/
 

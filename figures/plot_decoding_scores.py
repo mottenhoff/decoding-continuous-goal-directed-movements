@@ -1,157 +1,126 @@
 from pathlib import Path
+from itertools import product
+
 
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 
+FREQS, PPTS, STATES, FOLDS, METRICS, KINEMATICS = np.arange(6)
+
+    # Set some information
+CONFIG_I =        (5, 10, 25, 50, 100)  # Should be dynamically from config, but didnt change them anyway
+CONFIG_N1 =       (3, 5, 10, 20, 30)
+KINEMATIC_ORDER = (0, 1, 2, 9, 3, 4, 5, 10, 6, 7, 8, 11)    # x, y, z, sum. For 4x12 plot
+CC, R2, MSE, RMSE = np.arange(4)
+
+SCORE_NAMES =     ['freqs', 'ppts', 'states', 'folds', 'metrics', 'kinematics']
+CONDITIONS =      ['delta', 'alphabeta', 'bbhg']
+CONDITION_NAMES = ['Delta activity', 'Beta', 'Broadband high-gamma']
+STATE_OPTIONS =   list(product(CONFIG_N1, CONFIG_I))
+
+KINEMATIC_NAMES = [
+          r'$r_x$',      r'$r_y$',      r'$r_z$',
+          r'$v_x$',      r'$v_y$',      r'$v_z$',
+          r'$\alpha_x$', r'$\alpha_y$', r'$\alpha_z$',
+          r'$\vec r$',   r'$\vec v$',   r'$\vec \alpha$']
 
 
-def get_results(path_main, skip=False):
+cmap = cm.batlow
+permutations = 10
 
-    all_runs = [session for ppt in path_main.iterdir() if ppt.is_dir() for session in ppt.iterdir()]
+
+def hline_per_bar(ax, x_ticks, chance_levels, label=True):
+    # NOTE: If plotted iteratively (i.e. this functions is called multiple times), 
+    # make sure the xlims of the plot stay the same.
+
+    # Chance levels: array of length bars in ax.
+
+    abs_to_rel = lambda x, lim: (x - lim[0]) / (lim[1] - lim[0]) 
     
-    results = {}
-    for run in all_runs:
+    xlim = ax.get_xlim()
+
+    for ci, (tick, bar_patch) in enumerate(zip(x_ticks, ax.patches)):
+
+        half_width = abs_to_rel(xlim[0]+bar_patch.get_width()/2, xlim)
+        anchor = abs_to_rel(tick, xlim)
+        xmin, xmax = anchor - half_width, anchor + half_width
         
-        ppt_id = run.parts[-2]
+        ax.axhline(chance_levels[ci], xmin=xmin, xmax=xmax, 
+                        color='black', 
+                        # linestyle='--', 
+                        alpha=0.7,
+                        **{'label': 'chance level'} if label and ci==0 else {})
+    return ax
 
-        if Path(run/'profile.prof') not in run.iterdir():
-            continue
+def stack_scores(data, key=None):
+    return np.stack([values['scores' if not key else key] for values in data.values()])
 
-        with open(run/'info.yml') as f:
-            run_info = yaml.load(f, Loader=yaml.FullLoader)
-        
-        with open(f'./data/{ppt_id}/info.yaml') as f:
-            recording_info = yaml.load(f, Loader=yaml.FullLoader)
+def plot_overview(results, condition):
 
-        if recording_info['problems_left'] and skip:
-            print(f'Skipping {ppt_id}')
-            continue
-
-        scores = np.empty((0, 5, 4, 12))
-        paths = np.array([])
-        for result in run.iterdir():
-            
-            if not result.is_dir():
-                continue
-
-            metrics = np.load(result/'metrics.npy') # Folds, Scoretype, Ydims
-
-            scores = np.vstack([scores, metrics])
-            paths = np.append(paths, result)
-
-        results.update({'_'.join(run.parts[-2:]): {'scores': scores,
-                                                   'paths': paths,
-                                                   'datasize': run_info['datasize'],
-                                                   'n_targets': run_info['n_targets']}})
-
-    return results
-
-def calculate_chance_level(z, zh, alpha=0.05, block_size=.1, n_repetitions=10000):
-    # block size = % of data
-
-    n_samples = z.shape[0]
-    boundary = int(n_samples * block_size)
-
-    permuted_ccs = np.empty((0, z.shape[1]))
-    for _ in np.arange(n_repetitions):
-
-        split_idx = np.random.choice(np.arange(boundary, n_samples - boundary))
-        z_permuted = np.concatenate([zh[split_idx:, :], zh[:split_idx, :]])
-
-        cc = [np.abs(np.corrcoef(zi, zhi)[0, 1]) for zi, zhi in zip(z.T, z_permuted.T)]
-
-        permuted_ccs = np.vstack([permuted_ccs, cc])
-
-    true_ccs = [np.corrcoef(zi, zhi)[0, 1] for zi, zhi in zip(z.T, zh.T)]  # abs?
-
-    chance_idx = int(n_repetitions * (1-alpha))
-    chance_level = np.sort(permuted_ccs, axis=0)[chance_idx, :]
-
-    return chance_level, permuted_ccs
-
-
-def plot_overview(path):
-    Y_DIMS = ['pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'acc_x', 'acc_y', 'acc_z', 'dist', 'speed', 'force']
+    # Set some values
     col_titles = ['X', 'Y', 'Z', r'$\sum$']
     row_titles = ['Position', 'Velocity', 'Acceleration']
-    MEAN, STD = 0, 1
-    cmap = cm.batlow
-    METRIC = 0  # [CC, R2, MSE, RMSE]
 
-    results = get_results(path)
+    metric = CC  # [CC, R2, MSE, RMSE]
 
-    # a = [(ppt, result['scores']) for ppt, result in results.items()]
-    # a[0][1][:, :, 0, :].mean(axis=1).max(axis=0)
+   # Get the data
+    scores = stack_scores(results)
+    chance_levels = stack_scores(results, 'chance_levels')
 
-    scores = []
-    best_paths = []
-    for ppt, result in results.items():
-        score = result['scores']
-
-        if summed_cc := True:
-            # Select on highest summed CC over kinematics
-            best_params = score[:, :, METRIC, :].mean(axis=1).sum(axis=1).argmax()  
-            max_mean = score[best_params, :, METRIC, :].mean(axis=0)
-            max_std =  score[best_params, :, METRIC, :].std(axis=0)
-        
-        else:
-            # Select on highest CC per individual kinematics
-            #   i.e. varying parameters per kinematic.
-            #   TODO: !! Probably Wrong!
-            best_params = np.where(score[:, :, METRIC, :].mean(axis=1) == score[:, :, METRIC, :].mean(axis=1).max(axis=0))
-            max_mean = score[best_params[0], :, METRIC, best_params[1]].mean(axis=1)
-            max_std =  score[best_params[0], :, METRIC, best_params[1]].std(axis=1)
-
-        scores += [(ppt, np.vstack([max_mean, max_std]))]
-        best_paths += [result['paths'][best_params]]
-
-    scores = sorted(scores)
-    ppts =   [score[0] for score in scores]
-    scores = np.dstack([score[1] for score in scores]).transpose(2, 1, 0)
-
-    order = np.array([['pos_x', 'pos_y', 'pos_z', 'dist'],
-                      ['vel_x', 'vel_y', 'vel_z', 'speed'],
-                      ['acc_x', 'acc_y', 'acc_z', 'force']])
-    fig_shape = order.shape
-
+    # PLot the thing
+    ppts = np.array(list(results.keys()))
+    ppts_order = np.argsort(ppts)
+    ppts, scores, chance_levels = ppts[ppts_order], scores[ppts_order], chance_levels[ppts_order]
+    
     xticks = np.arange(len(ppts))
     colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppts))]
 
-    fig, ax = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(16, 9))
-    for idx, score_name in zip(np.ndindex(*fig_shape), order.flatten()):
-        mean = scores[:, Y_DIMS.index(score_name), MEAN]
-        std =  scores[:, Y_DIMS.index(score_name), STD]
-        ax[idx].bar(xticks, mean, color=colors, yerr=std)  # np.stack([(0, f) for f in std[freqs_i, :]]).T for only top errorbar
+    fig_shape = (3, 4)
+    fig, axs = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(16, 9))
+
+
+    for idx, ax in enumerate(axs.flatten()):
         
+        mean = scores[:, :, metric, KINEMATIC_ORDER[idx]].mean(axis=1)
+        std  = scores[:, :, metric, KINEMATIC_ORDER[idx]].std(axis=1)
+
+        ax.bar(xticks, mean, yerr=np.vstack([np.zeros(std.size), std]), color=colors)  # np.stack([(0, f) for f in std[freqs_i, :]]).T for only top errorbar
+        
+        ax = hline_per_bar(ax, xticks, chance_levels[:, idx])
+
         # ax[idx].set_title(score_name)  # Sanity check
-        ax[idx].spines['top'].set_visible(False)
-        ax[idx].spines['right'].set_visible(False)
-        ax[idx].spines['left'].set_visible(False if idx[1] != 0 else True)
-        ax[idx].set_xticks(np.arange(len(ppts)))
-        ax[idx].set_xticklabels([])
-        ax[idx].set_yticklabels([])
-        ax[idx].set_ylim(0, 1)
+        ax.spines[['top', 'left', 'right']].set_visible(False)
+        
+        ax.set_xticks(np.arange(len(ppts)))
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.set_ylim(0, 1)
 
-        ax[idx].set_axisbelow(True)
-        ax[idx].yaxis.grid()
+        ax.set_axisbelow(True)
+        ax.yaxis.grid()
 
-        if idx[0] == 0:  # Top row
-            ax[idx].set_title(col_titles[idx[1]], fontsize='xx-large')
-
-        if idx[0] == order.shape[0]-1: # Bottom row
-            ax[idx].set_xticks(np.arange(scores.shape[0]))
-            ax[idx].set_xticklabels([ppt.split('_')[0] for ppt in ppts], fontsize='small', rotation=45, ha='right')
-
-        if idx[1] == 0:  # Left column
-            ax[idx].set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax[idx].set_yticklabels([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax[idx].set_ylabel(f'{row_titles[idx[0]]}\nCC', fontsize='x-large')
     
+    for i in range(3):
+        axs[i, 0].set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        axs[i, 0].set_yticklabels([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        axs[i, 0].set_ylabel(f'{row_titles[int(idx/4)]}\nCC', fontsize='x-large')
+        axs[i, 0].spines['left'].set_visible(True)
+
+    for i in range(4):
+        axs[0, i].set_title(col_titles[i], fontsize='xx-large')
+
+        axs[-1, i].set_xticks(np.arange(scores.shape[0]))
+        axs[-1, i].set_xticklabels([ppt.split('_')[0] for ppt in ppts], fontsize='small', rotation=45, ha='right')
+
+
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
-    fig.savefig(f'figure_output/decoder_scores_{path.stem}.png')
-        
-    return best_paths, scores
+
+    fig.savefig(f'figure_output/decoder_scores_{condition}.png')
+    fig.savefig(f'figure_output/decoder_scores_{condition}.svg')
+    
+    best_paths = [v['paths'] for v in results.values()]
+    return best_paths
  

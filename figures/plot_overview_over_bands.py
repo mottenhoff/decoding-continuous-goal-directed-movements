@@ -68,7 +68,9 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
         xmin, xmax = anchor - half_width, anchor + half_width
         
         ax.axhline(chance_levels[ci], xmin=xmin, xmax=xmax, 
-                        color='black', linestyle='--', alpha=0.7,
+                        color='black', 
+                        # linestyle='--', 
+                        alpha=0.7,
                         **{'label': 'chance level'} if label and ci==0 else {})
     return ax
 
@@ -225,20 +227,20 @@ def plot_mean_performance(scores, chance_levels):
     ax.set_ylabel('CC', fontsize='xx-large')
     ax.spines[['top', 'right']].set_visible(False)
 
-    fig.legend(frameon=False, fontsize='x-large')
+    fig.legend(frameon=False) #, fontsize='x-large')
 
     fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.png')
     fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.svg')
 
     return
 
-def plot(results, all_paths):
+def plot(results, path):
     # results = [(best_paths, scores), ...]  delta, ab, bbhg
 
     # Gather the data
-    data = {cond: get_results(path) for cond, path in zip(CONDITIONS, all_paths)}
-    scores =        stack_scores(data)
-    chance_levels = stack_scores(data, 'chance_levels')
+    # data = {cond: get_results(path) for cond, path in zip(CONDITIONS, all_paths)}
+    scores =        stack_scores(results)
+    chance_levels = stack_scores(results, 'chance_levels')
 
     ### Plot it
     # _, _ = plot_freqs_vs_states(scores)

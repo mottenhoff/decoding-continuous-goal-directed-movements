@@ -31,29 +31,38 @@ def resample(arr, n_samples):
 
     return arr[new_idx, :]
 
-def plot_average_time_to_target(paths):
+def plot_average_time_to_target(path):
 
-    ppt_times = {path.parents[1].stem: np.load(path.parents[0]/'time_between_targets.npy') 
-                for path in paths}
 
-    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    ppt_times = {path.parents[1].stem: np.load(path) 
+                for path in path.rglob('time_between_targets.npy')}
+
+    median_time = np.median(np.hstack(list(ppt_times.values())))
 
     colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppt_times))]
 
-    # Ax 2: Histograms
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    # Ax 0: Histograms
 
     for i, (ppt, times) in enumerate(ppt_times.items(), start=0):
         axs[0].hist(times, label=ppt, bins=100, color=colors[i])
     
+    axs[0].axvline(median_time, color='black', linestyle='dashed')
+
+    axs[0].annotate(f'{median_time:.1f}s', xy=(median_time+46, -15), ha='center',
+                    xycoords='axes points', fontsize='large')
+    axs[0].annotate('Median time', xy=(median_time, 1.01), ha='center',
+                    xycoords=('data', 'axes fraction'), fontsize='small') 
+
+
     axs[0].semilogx()
     axs[0].set_xlabel('Time [log(s)])')    
     axs[0].set_ylabel('Count')
     axs[0].spines[['top', 'right']].set_visible(False)
 
     # Ax 1: Violins
-
     times = np.concatenate([time for time in ppt_times.values()])
-    
+
     for i, opt in enumerate([{'showmedians':  True}, {'showmeans': True}]):
     
         vp = axs[1].violinplot(times, positions=[i+1], showextrema=False, **opt)
@@ -89,12 +98,16 @@ def plot_average_time_to_target(paths):
     fig.suptitle('Time to target')
     fig.tight_layout()
     fig.savefig('./figure_output/time_to_target.png')
+    fig.savefig('./figure_output/time_to_target.svg')
     
 
     return
 
-def plot_average_trajectory(paths):
+def plot_average_trajectory(main_path):
     # pos, speed, force = [9, 10, 11]
+
+    paths = main_path.rglob('behavior_per_trial.pkl')
+
     suspicious_trials = {}    
     for path in paths:
         ppt_id = path.parents[1].stem
@@ -113,7 +126,7 @@ def plot_average_trajectory(paths):
 
         trials = [trial for trial in trials if trial[0, SPEED] < 100]
 
-        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 8))
+        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         for trial in trials:
 
@@ -123,11 +136,19 @@ def plot_average_trajectory(paths):
                 x = np.linspace(0, 100, trial.shape[0])  # normalized to percentage of trial
                 ax.plot(x, trial[:, iax], linewidth=1)
             
-        axs[0].set_title('Position')
-        axs[1].set_title('Speed')
-        axs[2].set_title('Acceleration')
+        axs[0].set_xlabel('Percentage of trial')
+        axs[0].set_ylabel('Position [mm]')
 
-        fig.savefig(f'trials_{ppt_id}_1.png')
+        axs[1].set_xlabel('Percentage of trial')
+        axs[1].set_ylabel('Speed [mm/s]')
+
+        axs[2].set_xlabel('Percentage of trial [%]')
+        axs[2].set_ylabel(r'Acceleration $mm/s^2$')
+
+        fig.tight_layout()
+        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.png')
+        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.svg')
+
 
         continue
 
@@ -182,6 +203,6 @@ def plot_target_distributions(paths):
     return
 
 def all(paths):
-    # plot_average_time_to_target(paths)
-    plot_average_trajectory(paths)
+    plot_average_time_to_target(paths)
+    # plot_average_trajectory(paths)
     return

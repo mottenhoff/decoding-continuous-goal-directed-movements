@@ -92,7 +92,7 @@ def run(save_path, filenames, ppt_id):
     # plot_subsets(datasets, save_path)
 
     explore.main(datasets, save_path)
-
+    return
     save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
                       ds.ppt_id, save_path)
     # print('')

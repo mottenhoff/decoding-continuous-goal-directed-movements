@@ -10,10 +10,10 @@ from figures import plot_reconstruction_overview
 # from figures import summarize, 
 from figures import plot_decoding_scores
 from figures import plot_overview_over_bands
-from figures import plot_significant_channels
 from figures import gaps_vs_performance
 from figures import latent_state_comparisons
 from figures import plot_dataset_metrics
+from figures import get_results as gr
 
 from libs import utils
 c = utils.load_yaml('./config.yml')
@@ -45,30 +45,34 @@ if __name__=='__main__':
                  Path('./finished_runs/window/alphabeta'),
                  Path('./finished_runs/window/bbhg')] 
 
-    results = [plot_decoding_scores.plot_overview(path) 
-                    for path in all_paths]
 
+    
+    results = {path.stem: gr.get_results(path) for path in all_paths}
+    best_results = {condition: gr.get_best_scores(result) for condition, result in results.items()}
+    best_paths = [ppt['paths'] for ppt in best_results['delta'][0].values()]
+
+    for condition, result in best_results.items():
+        plot_decoding_scores.plot_overview(result[0], condition)
+
+    # Max score over states,
+    # mean performance per kinematic per band
     plot_overview_over_bands.plot(results, all_paths)
-    plot_dataset_metrics(all_paths[0])
+
+    plot_dataset_metrics.plot_average_time_to_target(all_paths[0])
+    plot_dataset_metrics.plot_average_trajectory(all_paths[0])
+    
+    gaps_vs_performance.plot_relationship(best_paths)
 
 
-
-
-    # best_paths, scores = plot_decoding_scores.plot_overview(path)
-
-    # gaps_vs_performance.plot_relationship(best_paths)
-    # latent_state_comparisons.main(best_paths)
-    plot_dataset_metrics.all(best_paths)
-
-    for path in best_paths:
+    # TODO:
+    # Reconstruction
         # plot_reconstruction_overview.make(path)
-        pass
+        # summarize.main(Path('./results/combined'))
+    # Brain correlations
+    # Brain combined plot
 
+    # NICE TO HAVE
+    # Latent state comparison
+        # latent_state_comparisons.main(best_paths)
 
-    # plot_significant_channels.plot(best_paths, scores)
-    # summarize.main(Path('./results/combined'))
-    print('')
-
-
-
-    # [] Plot speed from trial to trial.
+    

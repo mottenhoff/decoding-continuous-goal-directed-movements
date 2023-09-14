@@ -1,6 +1,5 @@
 from figures import figure_3d_correlation_and_reconstruction
 from figures import figure_1d_score_overview
-from figures import figure_6d_score_overview
 
 from figures import plot_reconstruction_overview
 
@@ -8,11 +7,8 @@ from libs import utils
 c = utils.load_yaml('./config.yml')
 
 def plot_speed(path):
-    # TODO: Session path
-    if c.complete_model:
-        figure_6d_score_overview.make(path)
-    else:
-        figure_1d_score_overview.make(path)
+
+    figure_1d_score_overview.make(path)
 
 def make_overview(path):
     if c.complete_model:
