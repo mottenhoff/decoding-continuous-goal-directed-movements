@@ -20,6 +20,8 @@ from libs.feature_selection.top_correlated import select_top_correlated
 from figures import all_figures
 from figures import checks as fig_checks
 
+CC = 0
+
 logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
 rs = RandomState(MT19937(SeedSequence(62277783366)))
@@ -121,75 +123,113 @@ def get_psid_params(n_states, relevant, horizons):
         for nx, n1, i in product(n_states, relevant, horizons):
             yield nx, n1, i
 
-def fit_and_score(z, y, nx, n1, i, save_path):
+# def fit_and_score(z, y, nx, n1, i, save_path):
 
-    n_samples =        c.learn.cv.n_repeats
-    n_dims =           c.learn.fs.n_dims      if c.learn.fs.dim_reduction else y.shape[1]
-    n_folds =          c.learn.cv.outer_folds
-    n_inner_folds =    c.learn.cv.inner_folds
-    z_dims = z.shape[1]
+#     n_samples =        c.learn.cv.n_repeats
+#     n_dims =           c.learn.fs.n_dims      if c.learn.fs.dim_reduction else y.shape[1]
+#     n_folds =          c.learn.cv.outer_folds
+#     n_inner_folds =    c.learn.cv.inner_folds
+#     z_dims = z.shape[1]
 
-    results =                np.empty((n_samples, n_folds,    4, z_dims))   #  4 measures per channel
-    trajectories =           np.empty((n_samples, y.shape[0], z_dims))      #  Z
-    neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
-    latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
+#     results =                np.empty((n_samples, n_folds,    4, z_dims))   #  4 measures per channel
+#     trajectories =           np.empty((n_samples, y.shape[0], z_dims))      #  Z
+#     neural_reconstructions = np.empty((n_samples, y.shape[0], n_dims)) #  Y
+#     latent_states =          np.empty((n_samples, y.shape[0], nx))     #  X
 
-    logger.info(f'''Input for learning: 
-                        z={z.shape} | y={y.shape} | n_dims={n_dims}
-                        nx={nx} | n1={n1} | i={i}''')
-    for j in range(n_samples):
+#     logger.info(f'''Input for learning: 
+#                         z={z.shape} | y={y.shape} | n_dims={n_dims}
+#                         nx={nx} | n1={n1} | i={i}''')
+#     for j in range(n_samples):
         
-        folds = np.array_split(np.arange(y.shape[0]), n_folds)
-        for idx, fold in enumerate(folds):
+#         folds = np.array_split(np.arange(y.shape[0]), n_folds)
+#         for idx, fold in enumerate(folds):
 
-            y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
-            z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
+#             y_test, y_train = y[fold, :], np.delete(y, fold, axis=0)
+#             z_test, z_train = z[fold, :], np.delete(z, fold, axis=0)
  
-            features = select_features(n_dims, n_inner_folds, y_train, z_train, nx, n1, i) \
-                       if c.learn.fs.dim_reduction else np.arange(y.shape[1])
+#             features = select_features(n_dims, n_inner_folds, y_train, z_train, nx, n1, i) \
+#                        if c.learn.fs.dim_reduction else np.arange(y.shape[1])
 
-            y_test, y_train = y_test[:, features], y_train[:, features]
+#             y_test, y_train = y_test[:, features], y_train[:, features]
 
-            id_sys = PSID.PSID(y_train, z_train, nx, n1, i, zscore_Y=True, zscore_Z=True)
-            # logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
-            zh, yh, xh = id_sys.predict(y_test)
+#             id_sys = PSID.PSID(y_train, z_train, nx, n1, i, zscore_Y=True, zscore_Z=True)
+#             # logger.info(f'Fold {j}_{idx}: Fitted PSID [{y_train.shape}]')
+#             zh, yh, xh = id_sys.predict(y_test)
 
-            metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
+#             metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
 
-            logger.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
-            # logger.info(f'Fold {j}_{idx} | ' + ' '.join([f'dim {i}: {score:.2f}' for i, score in enumerate(metrics[0, :])]))
-            # logger.info(metrics)
-            results[j, idx, :, :] =              metrics
-            trajectories[j, fold, :] =           zh
-            neural_reconstructions[j, fold, :] = yh
-            latent_states[j, fold, :] =          xh
+#             logger.info(f'Fold {j}_{idx} | CC: {metrics[0, :].mean():.2f}+{metrics[0, :].std():.2f} | RMSE: {metrics[3, :].mean():.1f}+{metrics[3, :].std():.1f}')
+#             # logger.info(f'Fold {j}_{idx} | ' + ' '.join([f'dim {i}: {score:.2f}' for i, score in enumerate(metrics[0, :])]))
+#             # logger.info(metrics)
+#             results[j, idx, :, :] =              metrics
+#             trajectories[j, fold, :] =           zh
+#             neural_reconstructions[j, fold, :] = yh
+#             latent_states[j, fold, :] =          xh
 
-    if c.learn.save:
-        save(save_path,
-             metrics=results,
-             trajectories=trajectories,
-             neural_reconstructions=neural_reconstructions,
-             latent_states=latent_states,
-             z=z,
-             y=y)
+#     if c.learn.save:
+#         save(save_path,
+#              metrics=results,
+#              trajectories=trajectories,
+#              neural_reconstructions=neural_reconstructions,
+#              latent_states=latent_states,
+#              z=z,
+#              y=y)
 
-def fit(datasets, save_path): 
-    '''
-    x = Latent states
-    y = Neural data
-    z = behavioral data
+# def fit(datasets, save_path): 
+#     '''
+#     x = Latent states
+#     y = Neural data
+#     z = behavioral data
 
-    nx:   Total Number of latent states
-    n1:   Latent states dedicated to behaviorally relevant dynamics
-    i:    Subspace horizon (low dim y = high i)   
+#     nx:   Total Number of latent states
+#     n1:   Latent states dedicated to behaviorally relevant dynamics
+#     i:    Subspace horizon (low dim y = high i)   
 
-    n_samples:     Amount of samples for random feature selection
-    n_dims:        Amount of dimensions to include
-    n_folds:       Model evaluation
-    n_inner_folds: Hyperparameter optimization
-    '''
+#     n_samples:     Amount of samples for random feature selection
+#     n_dims:        Amount of dimensions to include
+#     n_folds:       Model evaluation
+#     n_inner_folds: Hyperparameter optimization
+#     '''
 
-    # Select what do decode
+#     # Select what do decode
+#     target_kinematics = np.hstack([[0, 1, 2] if c.pos   else [],
+#                                    [3, 4, 5] if c.vel   else [],
+#                                    [6, 7, 8] if c.acc   else [],
+#                                    [9]       if c.dist  else [],
+#                                    [10]      if c.speed else [],
+#                                    [11]      if c.force else []]).astype(np.int16)
+
+
+#     # sanity_check(datasets)
+#     n_z = target_kinematics.size
+    
+#     n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
+
+#     if c.checks.concat_datasets:
+#         checks.concatenate_vs_separate_datasets(datasets)
+
+#     for nx, n1, i in get_psid_params(n_states, relevant, horizons):
+
+#         if (nx < n1) or (n1 > i*n_z):
+#             continue
+        
+#         # TODO: If going for separate sets, the code needs updating
+#         datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)  # Set to <= 0 for all sets
+
+#         # fig_checks.plot_datasets(datasets, target_kinematics)
+            
+#         y = np.vstack([s.eeg for s in datasets])
+#         z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
+
+#         path = save_path/f'{nx}_{n1}_{i}'
+#         path.mkdir()
+        
+#         fit_and_score(z, y, nx, n1, i, path)
+
+
+def fit(datasets, save_path):
+
+    # Select datasets
     target_kinematics = np.hstack([[0, 1, 2] if c.pos   else [],
                                    [3, 4, 5] if c.vel   else [],
                                    [6, 7, 8] if c.acc   else [],
@@ -197,29 +237,92 @@ def fit(datasets, save_path):
                                    [10]      if c.speed else [],
                                    [11]      if c.force else []]).astype(np.int16)
 
+    datasets = select_valid_datasets(datasets, max(c.learn.psid.i), c.learn.data.min_n_windows)
 
-    # sanity_check(datasets)
+    y = np.vstack([s.eeg for s in datasets])
+    z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
+
     n_z = target_kinematics.size
+
+    # Define CV params
+    n_outer_folds = c.learn.cv.outer_folds
+    n_inner_folds = c.learn.cv.inner_folds
+    n_samples =     c.learn.cv.n_repeats
     
+    outer_folds = np.array_split(np.arange(y.shape[0]), n_outer_folds)
+
+    # Define the grid
     n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
+    grid_params = list(get_psid_params(n_states, relevant, horizons))
+    n_grid_params = len(grid_params)
 
-    if c.checks.concat_datasets:
-        checks.concatenate_vs_separate_datasets(datasets)
+    # Define machine learning params
+    n_dims = c.learn.fs.n_dims if c.learn.fs.dim_reduction else y.shape[1]  # Feature selection dims
+    n_metrics = 4
+    
+    # CV outer
+    results =                np.empty((n_samples, n_outer_folds,    n_metrics, n_z))
+    cv_best_params =            np.empty((n_samples, n_outer_folds, 3))     #  nx, n1, i
 
-    for nx, n1, i in get_psid_params(n_states, relevant, horizons):
-
-        if (nx < n1) or (n1 > i*n_z):
-            continue
+    for i_outer, outer_fold in enumerate(outer_folds):
         
-        # TODO: If going for separate sets, the code needs updating
-        datasets = select_valid_datasets(datasets, i, c.learn.data.min_n_windows)  # Set to <= 0 for all sets
+        y_test, y_train = y[outer_fold, :], np.delete(y, outer_fold, axis=0)
+        z_test, z_train = z[outer_fold, :], np.delete(z, outer_fold, axis=0)
 
-        # fig_checks.plot_datasets(datasets, target_kinematics)
-            
-        y = np.vstack([s.eeg for s in datasets])
-        z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
+        features = select_features(n_dims, None, y_train, z_train, None, None, None)
+        y_test, y_train = y_test[:, features], y_train[:, features]
 
-        path = save_path/f'{nx}_{n1}_{i}'
-        path.mkdir()
+        # CV the grid
+        inner_scores = np.empty((n_inner_folds, n_grid_params, n_metrics, n_z))
+        inner_folds = np.array_split(np.arange(y_train.shape[0]), n_inner_folds)
         
-        fit_and_score(z, y, nx, n1, i, path)
+        for i_grid, (nx, n1, i) in enumerate(grid_params):
+
+            if (nx < n1) or (n1 > i*n_z):
+                continue
+        
+            # CV inner
+            for i_inner, inner_fold in enumerate(inner_folds):
+
+                y_train_test, y_train_train = y_train[inner_fold, :], np.delete(y_train, inner_fold, axis=0)
+                z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
+                
+                # Fit and score PSID
+                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i, zscore_Y=True, zscore_Z=True)
+                
+                zh, yh, xh = id_sys.predict(y_train_test)
+                metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
+
+                # print(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+                logger.info(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+                # Save scores per inner fold
+                inner_scores[i_inner, i_grid, :, :] = metrics
+
+        # Calculate best params
+        best_scores = inner_scores[:, :, 0, :].sum(axis=-1)
+        i_best_params = np.argmax(best_scores.mean(axis=0))  # Selects best params on highest summed correlation
+        best_params = grid_params[i_best_params]
+        logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
+        
+        # Re-train PSID
+        id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)
+        zh, yh, xh = id_sys.predict(y_test)
+
+        metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
+
+        path = save_path/f'{i_outer}'
+        path.mkdir(exist_ok=True)
+        
+        np.save(path/'trajectories.npy', zh)
+        np.save(path/'latent_states.npy', yh)
+        np.save(path/'selected_params.npy', best_params)
+
+        results[0, i_outer, :, :] = metrics
+        cv_best_params[0, i_outer, :] = best_params
+
+    # Save overal information (results from best params)'
+    np.save(save_path/'results.npy', results)
+    np.save(save_path/'cv_best_params.npy', cv_best_params)
+
+    save(save_path)  # Can take kwargs, without it only saves config
+

@@ -51,7 +51,9 @@ def init(main_path, id_):
             continue
 
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.WARNING)
+    # console_handler.setLevel(logging.WARNING)
+    console_handler.setLevel(logging.INFO)
+    # console_handler.setLevel(logging.DEBUG)
     
     log_filename = f'output.log'
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",

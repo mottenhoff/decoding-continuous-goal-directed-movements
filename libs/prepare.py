@@ -109,14 +109,14 @@ def frequency_decomposition(eeg: np.array, fs: float):
     frequency_ab    = [8, 30]
     frequency_bbhg  = [55, 200]
 
-    # delta_activity =   filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
+    delta_activity =   filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
     # alpha_beta_power = hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
-    bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
+    # bbhg_power =       hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
 
     return np.hstack([
-                    #  delta_activity, 
+                     delta_activity, 
                     #  alpha_beta_power, 
-                     bbhg_power
+                    #  bbhg_power
                      ])
 
 def go(ds, save_path, dsi):
