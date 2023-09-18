@@ -61,28 +61,22 @@ def get_results(path_main, skip=False):
             print(f'Skipping {ppt_id}')
             continue
 
-        scores = np.empty((0, 5, 4, 12))
-        paths = np.array([])
         chance_levels = np.empty((0, 12))
 
-        for result in run.iterdir():
-            
-            if not result.is_dir():
-                continue
+        result = np.load(run/'results.npy')
+        params = np.vstack([np.load(run/f'{i}'/'selected_params.npy') for i in range(5)])
+        
+        zh = np.vstack([np.load(run/f'{i}'/'trajectories.npy') for i in range(5)])
+        z = np.vstack([np.load(run/f'{i}'/'z.npy') for i in range(5)])
 
-            metrics = np.load(result/'metrics.npy') # Folds, Scoretype, Ydims
+        chance_levels, _ = calculate_chance_level(z, zh, n_repetitions=n_permutations)
 
-            z, zh = np.load(result/'z.npy'), np.load(result/'trajectories.npy').squeeze()
-
-            chance_level, _ = calculate_chance_level(z, zh, n_repetitions=n_permutations)
-            chance_levels = np.vstack([chance_levels, chance_level])
-            scores = np.vstack([scores, metrics])
-            paths = np.append(paths, result)
-
-        results.update({'_'.join(run.parts[-2:]): {'scores': scores,
-                                                   'paths': paths,
+        results.update({'_'.join(run.parts[-2:]): {'scores': result,
+                                                   'params': params,
+                                                   'paths': run,
                                                    'chance_levels': chance_levels,
                                                    'datasize': run_info['datasize'],
                                                    'n_targets': run_info['n_targets']}})
+
 
     return results

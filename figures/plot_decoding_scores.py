@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 
+from libs import maps
+
+
 FREQS, PPTS, STATES, FOLDS, METRICS, KINEMATICS = np.arange(6)
 
     # Set some information
@@ -28,6 +31,8 @@ KINEMATIC_NAMES = [
 
 
 cmap = cm.batlow
+ppt_map = maps.ppt_id()
+
 permutations = 10
 
 
@@ -66,8 +71,9 @@ def plot_overview(results, condition):
     metric = CC  # [CC, R2, MSE, RMSE]
 
    # Get the data
-    scores = stack_scores(results)
+    scores = stack_scores(results).squeeze()
     chance_levels = stack_scores(results, 'chance_levels')
+    # chance_levels = np.ones((16)) * 0.1 
 
     # PLot the thing
     ppts = np.array(list(results.keys()))
@@ -79,7 +85,6 @@ def plot_overview(results, condition):
 
     fig_shape = (3, 4)
     fig, axs = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(16, 9))
-
 
     for idx, ax in enumerate(axs.flatten()):
         
@@ -105,14 +110,15 @@ def plot_overview(results, condition):
     for i in range(3):
         axs[i, 0].set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
         axs[i, 0].set_yticklabels([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-        axs[i, 0].set_ylabel(f'{row_titles[int(idx/4)]}\nCC', fontsize='x-large')
+        axs[i, 0].set_ylabel(f'{row_titles[i]}\nCC', fontsize='x-large')
         axs[i, 0].spines['left'].set_visible(True)
 
     for i in range(4):
         axs[0, i].set_title(col_titles[i], fontsize='xx-large')
 
         axs[-1, i].set_xticks(np.arange(scores.shape[0]))
-        axs[-1, i].set_xticklabels([ppt.split('_')[0] for ppt in ppts], fontsize='small', rotation=45, ha='right')
+        axs[-1, i].set_xticklabels([ppt_map[ppt.split('_')[0]].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
+
 
 
     fig.tight_layout()
@@ -120,7 +126,3 @@ def plot_overview(results, condition):
 
     fig.savefig(f'figure_output/decoder_scores_{condition}.png')
     fig.savefig(f'figure_output/decoder_scores_{condition}.svg')
-    
-    best_paths = [v['paths'] for v in results.values()]
-    return best_paths
- 

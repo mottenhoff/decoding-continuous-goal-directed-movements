@@ -29,7 +29,7 @@ def load(path):
     return scores, n_gaps
 
 
-def plot_relationship(paths, ax=None):
+def plot_relationship(results, ax=None):
 
     # if not ax:
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(9, 3))

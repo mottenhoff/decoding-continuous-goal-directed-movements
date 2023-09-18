@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 
+
 FREQS, PPTS, STATES, FOLDS, METRICS, KINEMATICS = np.arange(6)
 
     # Set some information
@@ -25,8 +26,9 @@ KINEMATIC_NAMES = [
           r'$\vec r$',   r'$\vec v$',   r'$\vec \alpha$']
 
 
-permutations = 10
 cmap = cm.batlow
+
+permutations = 10
 
 def calculate_chance_level(z, zh, alpha=0.05, block_size=.1, n_repetitions=10000):
     # block size = % of data
@@ -74,56 +76,9 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
                         **{'label': 'chance level'} if label and ci==0 else {})
     return ax
 
-def get_results(path_main, skip=False):
-
-    all_runs = [session for ppt in path_main.iterdir() if ppt.is_dir() for session in ppt.iterdir()]
-    
-    results = {}
-    for run in all_runs:
-        
-        ppt_id = run.parts[-2]
-
-        if Path(run/'profile.prof') not in run.iterdir():
-            continue
-
-        with open(run/'info.yml') as f:
-            run_info = yaml.load(f, Loader=yaml.FullLoader)
-        
-        with open(f'./data/{ppt_id}/info.yaml') as f:
-            recording_info = yaml.load(f, Loader=yaml.FullLoader)
-
-        if recording_info['problems_left'] and skip:
-            print(f'Skipping {ppt_id}')
-            continue
-
-        scores = np.empty((0, 5, 4, 12))
-        paths = np.array([])
-        chance_levels = np.empty((0, len(KINEMATIC_NAMES)))
-
-        for result in run.iterdir():
-            
-            if not result.is_dir():
-                continue
-
-            metrics = np.load(result/'metrics.npy') # Folds, Scoretype, Ydims
-            
-            z, zh = np.load(result/'z.npy'), np.load(result/'trajectories.npy').squeeze()
-
-            chance_level, _ = calculate_chance_level(z, zh, n_repetitions=permutations)
-            chance_levels = np.vstack([chance_levels, chance_level])
-
-            scores = np.vstack([scores, metrics])
-            paths = np.append(paths, result)
-
-        results.update({'_'.join(run.parts[-2:]): {'scores': scores,
-                                                   'paths': paths,
-                                                   'chance_levels': chance_levels,
-                                                   'datasize': run_info['datasize'],
-                                                   'n_targets': run_info['n_targets']}})
-
-    return results
-
 def stack_scores(data, key=None):
+
+
     stack_ppt_scores = lambda ppts: np.stack([values['scores' if not key else key] for values in ppts.values()])
     return np.stack([stack_ppt_scores(ppts) for freq, ppts in data.items()], axis=0)
 
@@ -227,7 +182,7 @@ def plot_mean_performance(scores, chance_levels):
     ax.set_ylabel('CC', fontsize='xx-large')
     ax.spines[['top', 'right']].set_visible(False)
 
-    fig.legend(frameon=False) #, fontsize='x-large')
+    # fig.legend(frameon=False) #, fontsize='x-large')
 
     fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.png')
     fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.svg')
@@ -238,15 +193,15 @@ def plot(results, path):
     # results = [(best_paths, scores), ...]  delta, ab, bbhg
 
     # Gather the data
-    # data = {cond: get_results(path) for cond, path in zip(CONDITIONS, all_paths)}
-    scores =        stack_scores(results)
+    scores =        stack_scores(results).squeeze()
     chance_levels = stack_scores(results, 'chance_levels')
 
     ### Plot it
     # _, _ = plot_freqs_vs_states(scores)
 
-    best_state_i, best_state = plot_scores_per_state(scores)
+    # best_state_i, best_state = plot_scores_per_state(scores)
 
-    plot_mean_performance(scores[:, :, best_state_i, :, :, :], chance_levels[:, :, best_state_i, :])
+
+    plot_mean_performance(scores, chance_levels)
 
     return

@@ -22,37 +22,17 @@ c = utils.load_yaml('./config.yml')
 
 if __name__=='__main__':
 
-    # path = Path('/home/coder/project/results/20221207_0215')
-    # path = Path('/home/coder/project/results/20221209_0257')
-    # path = Path('finished_runs/delta_all_car/20230526_1752/')  # 5_5_10
-    # path = Path('results/20230714_1301')
-    # path = Path('results/20230616_0733')
-    # make_overview(path)
-
-    # summarize.main(Path('./results/20230717_0927'))  # Path('./finished_runs/beta_all/')
-    # summarize.main(Path('./finished_runs/delta_all_car/'))  # Path('./finished_runs/beta_all/')
-    # summarize.main(Path('./results'))
-
-    # summarize.main(Path('./results/20230728_1700'))
+    all_paths = [Path('./finished_runs/cv/delta'),
+                 Path('./finished_runs/cv/alphabeta'),
+                 Path('./finished_runs/cv/bbhg')] 
 
 
-
-    # path = Path('./results/ab')
-    # path = Path('./results/delta')
-    # path = Path('./finished_runs/window/bbhg')
-
-    all_paths = [Path('./finished_runs/window/delta'),
-                 Path('./finished_runs/window/alphabeta'),
-                 Path('./finished_runs/window/bbhg')] 
-
-
-    
     results = {path.stem: gr.get_results(path) for path in all_paths}
-    best_results = {condition: gr.get_best_scores(result) for condition, result in results.items()}
-    best_paths = [ppt['paths'] for ppt in best_results['delta'][0].values()]
+    # best_results = {condition: gr.get_best_scores(result) for condition, result in results.items()}
+    # best_paths = [ppt['paths'] for ppt in best_results['delta'][0].values()]
 
-    for condition, result in best_results.items():
-        plot_decoding_scores.plot_overview(result[0], condition)
+    for condition, result in results.items():
+        plot_decoding_scores.plot_overview(result, condition)
 
     # Max score over states,
     # mean performance per kinematic per band
@@ -61,7 +41,7 @@ if __name__=='__main__':
     plot_dataset_metrics.plot_average_time_to_target(all_paths[0])
     plot_dataset_metrics.plot_average_trajectory(all_paths[0])
     
-    gaps_vs_performance.plot_relationship(best_paths)
+    # gaps_vs_performance.plot_relationship(results)  # currently doesnt work
 
 
     # TODO:

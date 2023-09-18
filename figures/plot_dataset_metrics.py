@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+from random import random
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -106,95 +107,48 @@ def plot_average_time_to_target(path):
 def plot_average_trajectory(main_path):
     # pos, speed, force = [9, 10, 11]
 
-    paths = main_path.rglob('behavior_per_trial.pkl')
+    paths = list(main_path.rglob('behavior_per_trial*'))
 
-    suspicious_trials = {}    
-    for path in paths:
-        ppt_id = path.parents[1].stem
-        # m, z = load(paths[0]) 
-        exclude_by_hand = {'kh049': [0]}
-        exclude_by_hand = []
+    ppt_ids = set([path.parts[-3] for path in paths])
 
-        with open(f'finished_runs/window/bbhg/{ppt_id}/0/behavior_per_trial.pkl', 'rb') as f:
-            trials = pickle.load(f)
-
-        for to_exclude in exclude_by_hand:
-            trials.pop(to_exclude)
+    for ppt_id in ppt_ids:
         
-
-        suspicious_trials[ppt_id] = [i for i, trial in enumerate(trials) if trial[0, SPEED] > 100]
-
-        trials = [trial for trial in trials if trial[0, SPEED] < 100]
+        ppt_paths = [path for path in paths if ppt_id in path.parts]
+        
+        trials = []
+        for path in ppt_paths:
+            
+            with open(path, 'rb') as f:
+                trials.append(pickle.load(f))
+        
+        trials = np.concatenate(trials)
 
         fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         for trial in trials:
 
             trial -= trial[0, :]
+            trial = np.abs(trial)
 
             for iax, ax in enumerate(axs, start=POS):
                 x = np.linspace(0, 100, trial.shape[0])  # normalized to percentage of trial
-                ax.plot(x, trial[:, iax], linewidth=1)
+                ax.plot(x, trial[:, iax], linewidth=1, color=cmap(random()))
             
-        axs[0].set_xlabel('Percentage of trial')
+        axs[0].set_xlabel('Progression in trial [%]')
         axs[0].set_ylabel('Position [mm]')
 
-        axs[1].set_xlabel('Percentage of trial')
+        axs[1].set_xlabel('Progression in trial [%]')
         axs[1].set_ylabel('Speed [mm/s]')
 
-        axs[2].set_xlabel('Percentage of trial [%]')
+        axs[2].set_xlabel('Progression in trial [%]')
         axs[2].set_ylabel(r'Acceleration $mm/s^2$')
 
+        for ax in axs:
+            ax.spines[['top', 'left', 'right']].set_visible(False)
+ 
         fig.tight_layout()
         fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.png')
-        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.svg')
-
-
-        continue
-
-        # Resample trials
-        n_samples = 1000
-        x = np.linspace(0, 100, n_samples)
-
-        trials = np.dstack([resample(trial, n_samples) for trial in trials])
-
-        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 8))
-
-        for iax, ax in enumerate(axs, start=POS):
-            trial_kinematic = np.abs(trials[:, iax, :])
-
-            if iax==2:
-                trial_kinematic = np.log(trial_kinematic)
-
-            ax.plot(x, trial_kinematic, linewidth=1, color='black')
-            ax.plot(x, trial_kinematic.mean(axis=-1), linewidth=3, color='orange')
-        
-        fig.savefig(f'trials_{ppt_id}_2.png')
-        
-
-        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 8))
-
-        for iax, ax in enumerate(axs, start=POS):
-            trial_kinematic = np.abs(trials[:, iax, :])
-
-            # if iax==2:
-            #     trial_kinematic = np.log(trial_kinematic)
-            trial_mean = trial_kinematic.mean(axis=-1)
-            trial_std = trial_kinematic.std(axis=-1)
-
-            ax.plot(np.arange(trial_mean.size), trial_mean, linewidth=2, color='black')
-            ax.fill_between(np.arange(trial_mean.size), trial_mean-trial_std, trial_mean+trial_std, color='grey')
-
-            # ax.plot(x, trial_kinematic.mean(axis=-1), linewidth=3, color='orange')
-        
-        fig.savefig(f'trials_{ppt_id}_3.png')
-
-
-    print(suspicious_trials)
-    # fig, ax = plt.subplots(figsize=(8, 8))
-
-
-    
+        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.svg')   
 
     return
 
