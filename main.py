@@ -51,8 +51,8 @@ def init(main_path, id_):
             continue
 
     console_handler = logging.StreamHandler(sys.stdout)
-    # console_handler.setLevel(logging.WARNING)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.WARNING)
+    # console_handler.setLevel(logging.INFO)
     # console_handler.setLevel(logging.DEBUG)
     
     log_filename = f'output.log'
@@ -98,7 +98,6 @@ if __name__=='__main__':
         filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
 
     if c.combine:
-        # TODO: Switch for one or both hands.
         files_per_ppt = defaultdict(list)
 
         for file in filenames:
@@ -117,6 +116,5 @@ if __name__=='__main__':
         pool.join()
 
     else:
-
         for job in jobs:
             init_run(job, main_path)  # job = [Filename, ...]

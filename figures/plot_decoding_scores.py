@@ -124,5 +124,5 @@ def plot_overview(results, condition):
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
 
-    fig.savefig(f'figure_output/decoder_scores_{condition}.png')
-    fig.savefig(f'figure_output/decoder_scores_{condition}.svg')
+    fig.savefig(f'figure_output/decoder_scores_{condition}_tmp.png')
+    fig.savefig(f'figure_output/decoder_scores_{condition}_tmp.svg')

@@ -13,5 +13,8 @@ def get_time_between_targets(ds):
 def get_number_of_samples(ds):
     return ds.xyz[~np.isnan(ds.xyz[:, 0]), 0].size
 
+def get_number_of_seconds(ds):
+    return
+
 def get_number_of_targets(ds):
     return ds.events.target_reached.shape[0]

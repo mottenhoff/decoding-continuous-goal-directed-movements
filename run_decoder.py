@@ -45,12 +45,13 @@ logger = logging.getLogger(__name__)
 
 def save_dataset_info(targets_reached, n_samples, n_gaps, time_between_targets, total_time,
                       ppt_id, save_path):
-
+    
     with open(save_path/'info.yml', 'w+') as f:
         info = {'ppt_id': ppt_id,
                 'datasize': n_samples,
                 'n_targets': targets_reached,
-                'n_gaps': n_gaps}
+                'n_gaps': n_gaps,
+                'total_time': total_time}
         yaml.dump(info, f)
 
     # with open(save_path/'time_between_targets.npy', 'wb') as f:
@@ -62,6 +63,8 @@ def run(save_path, filenames, ppt_id):
     datasets = []
     n_targets, n_samples, total_time = 0, 0, 0
     behavior_per_trial, time_between_targets = [], []
+
+    locations = []
     for i, filename in enumerate(filenames):
         logger.info(f'Loaded {filename}')
 
@@ -87,14 +90,24 @@ def run(save_path, filenames, ppt_id):
         total_time += ds.eeg.total_time
 
         datasets  += prepare.go(ds, save_path, i)
-    
+    # u, counts = np.unique([ch.strip('0123456789') for ch in ds.eeg.channels], return_counts=True)
+    # np.save(save_path.parent.parent/ f'kh{ds.ppt_id:03d}_locations.npy', list(ds.eeg.channel_map.values()))
+    # np.save(save_path.parent.parent/f'kh{ds.ppt_id:03d}_info.npy', [ds.ppt_id,
+    #                                         ds.eeg.channels.size,
+    #                                         len(u),
+    #                                         min(counts),
+    #                                         max(counts)])
+
+
+    # print(n_targets)
     n_gaps = len(datasets) - len(filenames)
     # plot_subsets(datasets, save_path)
 
     explore.main(datasets, save_path)
-
+    # print(total_time)
     save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
                       ds.ppt_id, save_path)
+    return
     # print('')
     learner.fit(datasets, save_path)
     

@@ -68,6 +68,8 @@ def plot_random_selection_per_trial(ds):
     fig.tight_layout()
     fig.savefig(f'figure_output/{ds.ppt_id}_bubble_example.png')
 
+    return
+
 def plot_subsets(subsets, save_path):
     np.random.seed(1337)
 
@@ -131,7 +133,7 @@ def plot_subsets(subsets, save_path):
 
 
 def plot_dataset(ds):
-    # plot_random_selection_per_trial(ds)
+    plot_random_selection_per_trial(ds)
     # plot_average_time_to_target(ds)
     return
 

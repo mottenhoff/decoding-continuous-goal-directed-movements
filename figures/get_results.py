@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 import numpy as np
 
-n_permutations = 10000
+n_permutations = 10
 
 def calculate_chance_level(z, zh, alpha=0.05, block_size=.1, n_repetitions=10):
     # block size = % of data

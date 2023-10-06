@@ -15,6 +15,7 @@ nohup.out
 *.png
 *.zip
 *.svg
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
