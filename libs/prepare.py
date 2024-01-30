@@ -2,17 +2,15 @@ import logging
 from dataclasses import dataclass
 import pickle
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.signal import resample, detrend
 
 import libs.utils
 from libs.utils import filter_eeg, hilbert
 from libs import kinematics
 from figures import checks as fig_checks
 
-from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
+# from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
 
 from libs import kinematics
 
