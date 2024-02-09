@@ -2,7 +2,7 @@ checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
-parallel: 0
+parallel: 1
 
 learn:
 
@@ -41,7 +41,7 @@ debug:
   short: 0
   dummy_data: 1
   reduce_channels: 30  # incl in dummy data
-  log: 1
+  log: 0
 
 figures:
   make_all: 0

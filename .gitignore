@@ -9,6 +9,9 @@ figures/checks/*
 finished_runs/**/*
 move_files.sh
 
+bubble_paths.txt
+_archive/
+
 docs/
 
 nohup.out

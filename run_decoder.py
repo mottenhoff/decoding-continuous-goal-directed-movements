@@ -75,7 +75,7 @@ def run(save_path, filenames, ppt_id):
 
         ds.eeg.timeseries = common_electrode_reference(ds.eeg.timeseries, ds.eeg.channels)
 
-        plot_dataset(ds)    
+        # plot_dataset(ds)    
 
         # Some optional extra features
         if c.target_vector:
@@ -103,11 +103,11 @@ def run(save_path, filenames, ppt_id):
     n_gaps = len(datasets) - len(filenames)
     # plot_subsets(datasets, save_path)
 
-    explore.main(datasets, save_path)
+    # explore.main(datasets, save_path)
     # print(total_time)
     save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
                       ds.ppt_id, save_path)
-    return
+    # return
     # print('')
     learner.fit(datasets, save_path)
     

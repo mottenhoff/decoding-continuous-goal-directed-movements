@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+import pickle
 from copy import deepcopy
 from pathlib import Path
 from itertools import product
@@ -211,7 +212,10 @@ def fit(datasets, save_path):
         path = save_path/f'{i_outer}'
         path.mkdir(exist_ok=True)
         
+        # TOdo: What to save 
+
         np.save(path/'z.npy', z_test)
+        # np.save(path/'y.npy', y)
         np.save(path/'trajectories.npy', zh)
         np.save(path/'latent_states.npy', yh)
         np.save(path/'selected_params.npy', best_params)
@@ -220,6 +224,14 @@ def fit(datasets, save_path):
         cv_best_params[0, i_outer, :] = best_params
 
     # Save overal information (results from best params)'
+    
+    # id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
+    id_sys = PSID.PSID(y, z, 30, 30, 5, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
+    pickle.dump(id_sys, open(save_path/'trained_model.pkl', 'wb'))
+
+    np.save(save_path/'y.npy', y)
+    np.save(save_path/'z.npy', z)
+
     np.save(save_path/'results.npy', results)
     np.save(save_path/'cv_best_params.npy', cv_best_params)
 

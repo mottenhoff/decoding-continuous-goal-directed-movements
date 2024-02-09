@@ -28,16 +28,40 @@ import yaml
 import run_decoder
 from libs import utils
 
-from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
-
 c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
+
+def get_files(data_path, from_file=True):
+
+    if from_file:
+        
+        with open('./bubble_paths.txt', 'r') as f:
+            lines = f.readlines()
+        
+        return [Path(line.strip()) for line in lines]
+    
+    else:
+        to_exclude = ['mu002', 'left']
+
+        filenames = []
+        for file in data_path.rglob('*.xdf'):  # Takes long because it also iterates over /imaging folders
+            fullpath = str(file).lower()
+            
+            if not 'bubbles' in fullpath:
+                continue
+            
+            if any([exclude in fullpath for exclude in to_exclude]):
+                continue
+
+            filenames.append(file)
+
+        return filenames
 
 def init(main_path, id_):
 
     path = main_path/id_
     path.mkdir(parents=True, exist_ok=True)
-
+ 
     i = 0
     while True:
         new_path = path/f'{i}'
@@ -59,15 +83,16 @@ def init(main_path, id_):
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
                         level=logging.INFO if not c.debug.log else logging.DEBUG,
                         handlers=[
-                            logging.FileHandler(path/f'{log_filename}'),
-                            # logging.StreamHandler()
+                            logging.FileHandler(path/f'{log_filename}'),  # save to file
+                            logging.StreamHandler(),  # print to terminal
                             console_handler])
 
     return path
 
 def init_run(filelist: list, main_path: Path):
-    ppt_id = filelist[0].parts[-2]
-    id_ = int(re.findall(r'\d+', ppt_id)[0])
+    ppt_id = re.findall(r'kh\d{3}', str(filelist[0]))[0]
+    id_ = int(ppt_id[-2:])
+    # id_ = int(re.findall(r'\d+', ppt_id)[0])
 
     save_path = init(main_path, ppt_id)
 
@@ -91,8 +116,10 @@ if __name__=='__main__':
     main_path = main_path/today
     main_path.mkdir(parents=True, exist_ok=True)
 
-    filenames = [p for p in Path('./data/').rglob('*.xdf')]
-    
+    data_path = Path(r'L:\FHML_MHeNs\sEEG')
+
+    filenames = get_files(data_path, from_file=True)
+
     # Filter ppt_ids:
     if ids := []: # 41,  53, 50
         filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
@@ -101,7 +128,8 @@ if __name__=='__main__':
         files_per_ppt = defaultdict(list)
 
         for file in filenames:
-            files_per_ppt[file.parts[-2]].append(file)
+
+            files_per_ppt[re.findall(r'kh\d{3}', str(file))[0]].append(file)
 
         jobs = list(files_per_ppt.values())
     else:
@@ -109,7 +137,7 @@ if __name__=='__main__':
 
     if c.parallel:
         
-        pool = Pool(processes=16)
+        pool = Pool(processes=8)
         for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()
