@@ -129,7 +129,7 @@ for path_a, path_b in combinations(main_path.glob('kh*'), 2):
 
 np.save('results.npy', results)
 
-fig, axs = plt.subplots(nrows=1, ncols=4)
+fig, axs = plt.subplots(nrows=1, ncols=4, figsize=(12, 8))
 
 for i in range(4):
     scores = results.mean(axis=2)[:, i, :]
@@ -148,78 +148,6 @@ for ax in axs:
     ax.set_ylim(-1, 1)
     ax.set_xticks(np.arange(N_KINEMATICS))
 
+fig.savefig('figures/transfer_learning.png')
+
 fig.show()
-
-
-
-
-
-
-
-
-# y_a_train, y_a_test, z_a_train, z_a_test = train_test_split(y_a, z_a, .8)
-
-# model_a = PSID.PSID(y_a_train, z_a_train, 30, 30, 10)
-# cz_a = model_a.Cz.copy()
-# z_hat_a, _, _ = model_a.predict(y_a_test)
-# baseline_a = eval_prediction(z_a_test, z_hat_a, 'CC')
-
-# # model_a = pickle.load(open(path_a/'trained_model.pkl', 'rb'))
-# # cz_a = model_a.Cz.copy()
-# # zh_a, yh_a, xh_a = model_a.predict(y_a)  # TODO: This data somehow produces a non-steady state kalman filter. Perhaps retry with different data. Might be that it only affects y to x
-# # baseline_a = eval_prediction(z_a, zh_a, 'CC')  ## TODO Evaluate in split or CV
-# y_b_train, y_b_test, z_b_train, z_b_test = train_test_split(y_b, z_b, .8)
-
-# model_b = PSID.PSID(y_b_train, z_b_train, 30, 30, 10)
-# cz_b = model_b.Cz.copy()
-# z_hat_b, y_hat_b, _ = model_b.predict(y_b_test)
-# baseline_b = eval_prediction(z_b_test, z_hat_b, 'CC')
-
-# # model_b = pickle.load(open(path_b/'trained_model.pkl', 'rb'))
-# # cz_b = model_b.Cz.copy()
-# # zh_b, yh_b, xh_b = model_b.predict(y_b)
-# # baseline_b = eval_prediction(z_b, zh_b, 'CC')  ## TODO Evaluate in split or CV
-
-
-# # Transfer learning
-# model_ab = deepcopy(model_a)
-# model_ab.Cz = cz_b
-
-# model_ba = deepcopy(model_b)
-# model_ba.Cz = cz_a
-
-# transfer_ab_zh, transfer_ab_yh, transfer_ab_xh = model_ab.predict(y_a)
-# transfer_ba_zh, transfer_ba_yh, transfer_ba_xh = model_ba.predict(y_b)
-
-# cc_ab_a = eval_prediction(transfer_ab_zh, z_a, 'CC')
-# # cc_ab_b = eval_prediction(transfer_ab_zh, z_b, 'CC')  # Causes error on window size, which should not be there?
-
-# # cc_ba_a = eval_prediction(transfer_ba_zh, z_a, 'CC')
-# cc_ba_b = eval_prediction(transfer_ba_zh, z_b, 'CC')
-
-# # TODO: Write down what swapping actually means in words! And is this useful for practise?
-# #       You still need to learn the mapping from y to z, which is the most expensive part anyway.
-
-# fig, axs = plt.subplots(nrows=1, ncols=4)
-# axs[0].bar(np.arange(N_KINEMATICS), baseline_a)
-# axs[1].bar(np.arange(N_KINEMATICS), baseline_b)
-# axs[2].bar(np.arange(N_KINEMATICS), cc_ab_a)
-# axs[3].bar(np.arange(N_KINEMATICS), cc_ba_b)
-
-# axs[0].set_title('Baseline A')
-# axs[1].set_title('Baseline B')
-# axs[2].set_title('Swapped\ninserted Cz_b to model A\nRepredicted y_a')
-# axs[3].set_title('Swapped\ninserted Cz_a to model B')
-# axs[0].set_ylabel('Reconstruction CC')
-# axs[0].set_xticks(np.arange(N_KINEMATICS))
-# axs[1].set_xticks(np.arange(N_KINEMATICS))
-# axs[2].set_xticks(np.arange(N_KINEMATICS))
-# axs[3].set_xticks(np.arange(N_KINEMATICS))
-# axs[0].set_xlabel('kinematics')
-
-# fig.show()
-
-
-
-
-print()
