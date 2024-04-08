@@ -58,6 +58,41 @@ def train_baseline(y, z):
 
     return baseline
 
+def highest_pairs(results, pairs):
+    # Do higher source and/or target scores lead to higher
+    KINEMATIC_SPEED = 10
+    A_TO_B = 2
+    B_TO_A = 3
+
+    pair_names = [(pair_a.name, pair_b.name) for pair_a, pair_b in pairs]
+    
+    results_mean = results.mean(axis=2)
+
+    highest_pair_score = results_mean[:, :2, KINEMATIC_SPEED].sum(axis=1)
+    
+    fig, ax = plt.subplots(nrows=2, ncols=2)
+    ax[0, 0].scatter(highest_pair_score, results_mean[:, A_TO_B, KINEMATIC_SPEED])
+    ax[0, 0].set_xlabel('summed_individual_score')
+    ax[0, 0].set_ylabel('A to B performance')
+    ax[0, 1].scatter(results_mean[:, 0, KINEMATIC_SPEED], results_mean[:, 1, KINEMATIC_SPEED], s=results_mean[:, A_TO_B, KINEMATIC_SPEED]*10000)
+    ax[0, 1].set_xlabel('decoding performance A')
+    ax[0, 1].set_ylabel('decoding performance B')
+    ax[0, 1].set_title('size by A to B score')
+
+    ax[1, 0].scatter(highest_pair_score, results_mean[:, B_TO_A, KINEMATIC_SPEED])
+    ax[1, 0].set_xlabel('summed_individual_score')
+    ax[1, 0].set_ylabel('B to A performance')
+    ax[1, 1].scatter(results_mean[:, 0, KINEMATIC_SPEED], results_mean[:, 1, KINEMATIC_SPEED], s=results_mean[:, B_TO_A, KINEMATIC_SPEED]*10000)
+    ax[1, 1].set_xlabel('decoding performance A')
+    ax[1, 1].set_ylabel('decoding performance B')
+    ax[1, 1].set_title('size by A to B score')
+
+    fig.savefig('relationship baseline and transferability.png')
+    plt.show()
+
+    return
+
+
 def transfer_learn(y_a, y_b, z_a, z_b):
 
     # train_model a for fold i
@@ -107,13 +142,22 @@ def transfer_learn(y_a, y_b, z_a, z_b):
     return baseline_a, baseline_b, transfer_ab, transfer_ba
 
 
+
+# Negative correlations might be because of the wide variation of correlations in delta, as some are strongly negatively correlated, and others strongly positively.
+#      if so, then this should not be the case for bbhg and or alphabeta. The latter may not have sufficient performane in the first place.
+
+
+
 path_a = Path(r'results\20240207_1556\20221103\0')
 path_b = Path(r'results\20240207_2001\Bubbles_15_53_18\0')
 
-main_path = Path(r'results\20240208_2240')
+main_path = Path(r'finished_runs\delta')
+main_path = Path(r'finished_runs\bbhg')
+# main_path = Path(r'finished_runs\alphabeta')
+pairs = [(path_a, path_b) for path_a, path_b in combinations(main_path.glob('kh*'), 2)]
 
 results = np.empty((0, 4, N_FOLDS, N_KINEMATICS))
-for path_a, path_b in combinations(main_path.glob('kh*'), 2):
+for path_a, path_b in pairs:
     try:
         y_a = np.load(path_a/'0'/'y.npy')
         z_a = np.load(path_a/'0'/'z.npy')
@@ -127,7 +171,11 @@ for path_a, path_b in combinations(main_path.glob('kh*'), 2):
     results = np.vstack([results, np.expand_dims(result_pair, 0)])
     print('.', end='')
 
-np.save('results.npy', results)
+np.save('transfer_results.npy', results)
+
+results = np.load('transfer_results.npy')
+
+highest_pairs(results, pairs)
 
 fig, axs = plt.subplots(nrows=1, ncols=4, figsize=(12, 8))
 
@@ -148,6 +196,8 @@ for ax in axs:
     ax.set_ylim(-1, 1)
     ax.set_xticks(np.arange(N_KINEMATICS))
 
-fig.savefig('figures/transfer_learning.png')
+outpath = Path(f'figure_output/transfer_learning')
+outpath.mkdir(exist_ok=True, parents=True)
+fig.savefig(outpath/'transfer_learning.png')
 
 fig.show()
