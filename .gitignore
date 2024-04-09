@@ -8,6 +8,7 @@ figures/checks/*
 *.npy
 finished_runs/**/*
 move_files.sh
+figure_output/*
 
 bubble_paths.txt
 _archive/
