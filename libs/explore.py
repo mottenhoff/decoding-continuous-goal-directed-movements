@@ -20,6 +20,8 @@ def task_correlations(datasets, savepath):
 
 def plot_trajectory(datasets, savepath, all_sets=True):
 
+    # TODO: z and target seems to be in differnt coordinate spaces.
+
     if all_sets:
         targets = np.vstack([np.unique(subset.trials[~np.isnan(subset.trials[:, 0])], axis=0)
                             for subset in datasets])
@@ -46,7 +48,7 @@ def plot_trajectory(datasets, savepath, all_sets=True):
 
 def main(datasets, savepath):
     task_correlations(datasets, savepath)
-    plot_trajectory(datasets, savepath)    
+    # plot_trajectory(datasets, savepath)
     plt.close('all')
     
 

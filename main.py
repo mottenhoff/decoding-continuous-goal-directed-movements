@@ -17,6 +17,7 @@ import io
 import re
 import sys
 from multiprocessing import Process, Pool
+from multiprocessing import cpu_count
 from pathlib import Path
 from datetime import datetime as dt
 from collections import defaultdict
@@ -124,6 +125,7 @@ if __name__=='__main__':
     if ids := []: # 41,  53, 50
         filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
 
+
     if c.combine:
         files_per_ppt = defaultdict(list)
 
@@ -134,11 +136,25 @@ if __name__=='__main__':
         jobs = list(files_per_ppt.values())
     else:
         jobs = [[file] for file in filenames]
+     
+    # missing = [
+    #         #    'kh040',
+    #         #    'kh041',
+    #         #    'kh042',
+    #         #    'kh045',
+    #         #    'kh047',
+    #         #    'kh048',
+    #         #    'kh051',
+    #         #    'kh052',
+    #         #    'kh053',
+    #         #    'kh056'
+    #            ] 
+    # jobs = [job for job in jobs if job[0].parts[3] in missing]
 
     if c.parallel:
         
-        pool = Pool(processes=8)
-        for job in jobs:
+        pool = Pool(processes=8) #cpu_count())
+        for job in jobs:                                                                                      
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()
         pool.join()

@@ -119,10 +119,10 @@ def plot_average_trajectory(main_path):
         for path in ppt_paths:
             
             with open(path, 'rb') as f:
-                trials.append(pickle.load(f))
-        
-        trials = np.concatenate(trials)
 
+                subset_trials = pickle.load(f)
+                trials += subset_trials
+        
         fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
 
         for trial in trials:
@@ -147,8 +147,11 @@ def plot_average_trajectory(main_path):
             ax.spines[['top', 'left', 'right']].set_visible(False)
  
         fig.tight_layout()
-        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.png')
-        fig.savefig(f'figure_output/trial_trajectories/trials_{ppt_id}_1.svg')   
+
+        outpath = Path(r'figure_output/trial_trajectories/')
+        outpath.mkdir(exist_ok=True, parents=True)
+        fig.savefig(outpath/f'trials_{ppt_id}_1.png')
+        fig.savefig(outpath/f'trials_{ppt_id}_1.svg')
 
     return
 

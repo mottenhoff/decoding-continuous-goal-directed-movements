@@ -19,12 +19,19 @@ from libs import utils
 c = utils.load_yaml('./config.yml')
 
 
-
 if __name__=='__main__':
 
-    all_paths = [Path('./finished_runs/cv/delta'),
-                 Path('./finished_runs/cv/alphabeta'),
-                 Path('./finished_runs/cv/bbhg')] 
+    all_paths = [
+        # Path(r'results\20240403_1039')
+        # Path(r'finished_runs\delta'),
+        # Path(r'finished_runs\alphabeta'),
+        # Path(r'finished_runs\bbhg')
+        # Path(r'finished_runs\delta_lap'),
+        # Path(r'finished_runs\alphabeta_lap'),
+        # Path(r'finished_runs\bbhg_lap')
+        # Path(r'finished_runs\delta_target_vec')
+        Path(r'finished_runs\delta_new')
+        ] 
 
 
     results = {path.stem: gr.get_results(path) for path in all_paths}
@@ -38,9 +45,11 @@ if __name__=='__main__':
     # mean performance per kinematic per band
     plot_overview_over_bands.plot(results, all_paths)
 
-    plot_dataset_metrics.plot_average_time_to_target(all_paths[0])
-    plot_dataset_metrics.plot_average_trajectory(all_paths[0])
+    # plot_dataset_metrics.plot_average_time_to_target(all_paths[0])
+    # plot_dataset_metrics.plot_average_trajectory(all_paths[0])  ## Throws error
     
+    
+
     # gaps_vs_performance.plot_relationship(results)  # currently doesnt work
 
 

@@ -77,8 +77,6 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
     return ax
 
 def stack_scores(data, key=None):
-
-
     stack_ppt_scores = lambda ppts: np.stack([values['scores' if not key else key] for values in ppts.values()])
     return np.stack([stack_ppt_scores(ppts) for freq, ppts in data.items()], axis=0)
 
@@ -150,6 +148,9 @@ def plot_scores_per_state(scores):
 def plot_mean_performance(scores, chance_levels):
 
     jitter = lambda n: (np.arange(n) - n/2) + 0.5
+
+    if scores.ndim == 4:
+        scores = scores[np.newaxis, :, :, :, :]
 
     mean = scores.mean(axis=(1, 2))[:, 0, :]
     std =  scores.std( axis=(1, 2))[:, 0, :]

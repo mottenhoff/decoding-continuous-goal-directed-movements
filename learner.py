@@ -140,6 +140,21 @@ def fit(datasets, save_path):
     y = np.vstack([s.eeg for s in datasets])
     z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
 
+    # import matplotlib.pyplot as plt
+
+    # idc = np.where(~np.isnan(z))[0]
+
+
+    # fig, ax = plt.subplots(nrows=3)
+    # ax[0].plot(z[idc, 9])
+    # ax[1].plot(z[idc, 10])
+    # ax[2].plot(z[idc, 11])
+    # plt.show()
+
+
+    # np.save(save_path/'y.npy', y)
+    # return
+
     n_z = target_kinematics.size
 
     # Define CV params
@@ -215,10 +230,11 @@ def fit(datasets, save_path):
         # TOdo: What to save 
 
         np.save(path/'z.npy', z_test)
-        # np.save(path/'y.npy', y)
+        np.save(path/'y.npy', y)
         np.save(path/'trajectories.npy', zh)
         np.save(path/'latent_states.npy', yh)
         np.save(path/'selected_params.npy', best_params)
+        np.save(path/'selected_channels.npy', features)
 
         results[0, i_outer, :, :] = metrics
         cv_best_params[0, i_outer, :] = best_params

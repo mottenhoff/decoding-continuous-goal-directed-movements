@@ -194,10 +194,12 @@ def main():
     conditions = [
         'delta', 
         'alphabeta', 
-        'bbhg'
+        'bbhg',
+        'delta_lap',
+        'alphabeta_lap'
         ]
 
-    condition = conditions[1]
+    condition = conditions[-1]
 
     main_path = Path(f'finished_runs/')
     outpath = Path(f'figure_output/channel_correlations/{condition}')
@@ -209,8 +211,8 @@ def main():
     colors = [cmap(i) for i in np.linspace(0, 1, len(ppt_ids))]
 
 
-    # plot_histogram(contacts, outpath)
-    # plot_brain(contacts, outpath)
+    plot_histogram(contacts, outpath)
+    plot_brain(contacts, outpath)
     # plot_colorbar()
     list_correlated_locations(contacts, outpath)
 

@@ -34,7 +34,10 @@ def ppt_id():
             'kh052': 'sub-13',
             'kh053': 'sub-14',
             'kh054': 'sub-15',  #
-            'kh055': 'sub-16'}
+            'kh055': 'sub-16',
+            'kh056': 'sub-17',
+            'kh067': 'sub-18'}
+
 
 def cmap():
     cmap = colormaps['tab20']

@@ -23,8 +23,7 @@ from libs import utils
 from libs import explore
 from libs import dataset_info
 from libs.timeshift import timeshift
-from libs.target_vector import target_vector
-from libs.rereference import common_electrode_reference
+from libs.rereference import common_electrode_reference, laplacian_reference
 from libs.load import load_dataset
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import flag_irrelevant_channels
@@ -44,7 +43,7 @@ c = utils.load_yaml('./config.yml')
 logger = logging.getLogger(__name__)
 
 def save_dataset_info(targets_reached, n_samples, n_gaps, time_between_targets, total_time,
-                      ppt_id, save_path):
+                      ppt_id, recorded_channels, save_path):
     
     with open(save_path/'info.yml', 'w+') as f:
         info = {'ppt_id': ppt_id,
@@ -55,6 +54,7 @@ def save_dataset_info(targets_reached, n_samples, n_gaps, time_between_targets, 
         yaml.dump(info, f)
 
     # with open(save_path/'time_between_targets.npy', 'wb') as f:
+    np.save(save_path/'recorded_channel_names.npy', recorded_channels)
     np.save(save_path/'time_between_targets.npy', np.concatenate(time_between_targets))
 
 def run(save_path, filenames, ppt_id):
@@ -69,17 +69,23 @@ def run(save_path, filenames, ppt_id):
         logger.info(f'Loaded {filename}')
 
         # Load and a bit of cleanup
-        ds = load_dataset(filename, ppt_id) #data_path/filename)
+        try:
+            ds = load_dataset(filename, ppt_id) #data_path/filename)
+        except Exception as err:
+            logger.error(f'cannot load {filename}\n{err}')
+            continue
 
         ds.eeg, _ = flag_irrelevant_channels(ds.eeg)
 
         ds.eeg.timeseries = common_electrode_reference(ds.eeg.timeseries, ds.eeg.channels)
+        # ds.eeg.timeseries = laplacian_reference(ds.eeg.timeseries, ds.eeg.channels)
+
 
         # plot_dataset(ds)    
 
-        # Some optional extra features
-        if c.target_vector:
-            vector = target_vector(ds.eeg.timeseries, ds.trials, ds.xyz)
+        # # Some optional extra features
+        # if c.target_vector:
+        #     vector = 
 
         if c.timeshift:
             ds.eeg.timeseries, ds.xyz = timeshift(ds.eeg.timeseries, ds.xyz, t=c.timeshift)
@@ -87,7 +93,11 @@ def run(save_path, filenames, ppt_id):
         n_targets  += dataset_info.get_number_of_targets(ds)
         n_samples += dataset_info.get_number_of_samples(ds)
         time_between_targets += [dataset_info.get_time_between_targets(ds)]
-        total_time += ds.eeg.total_time
+
+        if type(ds.eeg.total_time) != float:
+            logger.warning(f'Total time not float or int! {filename}')
+
+        total_time += ds.eeg.total_time  # TODO: check value for kH040, might not be a complete experiment, but exception not caught?
 
         datasets  += prepare.go(ds, save_path, i)
     # u, counts = np.unique([ch.strip('0123456789') for ch in ds.eeg.channels], return_counts=True)
@@ -98,15 +108,16 @@ def run(save_path, filenames, ppt_id):
     #                                         min(counts),
     #                                         max(counts)])
 
-
     # print(n_targets)
     n_gaps = len(datasets) - len(filenames)
     # plot_subsets(datasets, save_path)
 
-    # explore.main(datasets, save_path)
+    explore.main(datasets, save_path)
+    # return
+
     # print(total_time)
     save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
-                      ds.ppt_id, save_path)
+                      ds.ppt_id, datasets[0].channels, save_path)
     # return
     # print('')
     learner.fit(datasets, save_path)

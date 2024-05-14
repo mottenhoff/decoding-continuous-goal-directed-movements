@@ -13,6 +13,7 @@ from libs import plotting
 from libs import utils
 from libs import kinematics
 from libs import debug
+from libs.target_vector import get_target_vector
 from figures.checks import plot_events
 
 
@@ -34,6 +35,7 @@ class Dataset:
     xyz_timestamps: np.array
     trials: np.array
     events: dataclass
+    target_vector: np.array
 
 @dataclass
 class Eeg:
@@ -331,9 +333,10 @@ def load_dataset(path, ppt_id):
     # NOTE: Also requires all target markers to be adjusted
 
 
+    target_vector = get_target_vector(trials, xyz) # if c.target_vector else np.array([])
+
     # xyz = kinematics.get_all(xyz, xyz_ts)
     
-
     xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
                                            xyz, xyz_ts)
     trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
@@ -342,14 +345,13 @@ def load_dataset(path, ppt_id):
     eeg['channel_mapping'] = load_locations(path.parent/'electrode_locations.csv')
 
     eeg = Eeg(eeg['data'], eeg['ts'], eeg['fs'], 
-              eeg['total_stream_time'], eeg['channel_names'], eeg['channel_mapping'])
+              float(eeg['total_stream_time']), eeg['channel_names'], eeg['channel_mapping'])
 
 
     if c.debug.active and c.debug.short:
         debug.shorten_dataset(eeg, xyz)
 
-    dataset = Dataset(ppt_id, eeg, xyz, xyz_ts, trials, events)
-
+    dataset = Dataset(ppt_id, eeg, xyz, xyz_ts, trials, events, target_vector)
 
     # plot_events(dataset)
 
