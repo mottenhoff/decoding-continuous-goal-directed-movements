@@ -81,19 +81,21 @@ def get_all(subset, has_target_vector=False):
     speed = vector_length(velocity)
     force = vector_length(acceleration)
     
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
-    ax[0, 0].plot(xyz[:, 0])
-    ax[0, 1].plot(vb[:, 0])
-    ax[0, 2].plot(ab[:, 0])
-    ax[0, 0].set_title('before')
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
+    # ax[0, 0].plot(xyz[:, 0])
+    # ax[0, 1].plot(vb[:, 0])
+    # ax[0, 2].plot(ab[:, 0])
+    # ax[0, 0].set_title('before')
     
-    ax[1, 0].plot(xyz[:, 0])
-    ax[1, 1].plot(velocity[:, 0])
-    ax[1, 2].plot(acceleration[:, 0])
-    ax[1, 0].set_title('after')
+    # ax[1, 0].plot(xyz[:, 0])
+    # ax[1, 1].plot(velocity[:, 0])
+    # ax[1, 2].plot(acceleration[:, 0])
+    # ax[1, 0].set_title('after')
 
-    plt.show()
+
+
+    # plt.show()
 
 
 

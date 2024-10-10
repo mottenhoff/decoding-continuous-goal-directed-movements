@@ -28,7 +28,6 @@ from libs.load import load_dataset
 from libs.plotting import plot_trajectory
 from libs.data_cleaning import flag_irrelevant_channels
 
-
 from figures.plot_dataset import plot_dataset, plot_subsets
 from figures import all_figures
 from figures import checks as fig_checks
@@ -75,17 +74,16 @@ def run(save_path, filenames, ppt_id):
             logger.error(f'cannot load {filename}\n{err}')
             continue
 
+        # print(filename)
+        # continue
         ds.eeg, _ = flag_irrelevant_channels(ds.eeg)
 
-        ds.eeg.timeseries = common_electrode_reference(ds.eeg.timeseries, ds.eeg.channels)
-        # ds.eeg.timeseries = laplacian_reference(ds.eeg.timeseries, ds.eeg.channels)
 
-
-        # plot_dataset(ds)    
-
-        # # Some optional extra features
-        # if c.target_vector:
-        #     vector = 
+        if c.rereferencing.common_electrode_reference:
+            ds.eeg.timeseries = common_electrode_reference(ds.eeg.timeseries, ds.eeg.channels)
+        
+        elif c.rereferencing.laplacian:
+            ds.eeg.timeseries = laplacian_reference(ds.eeg.timeseries, ds.eeg.channels)
 
         if c.timeshift:
             ds.eeg.timeseries, ds.xyz = timeshift(ds.eeg.timeseries, ds.xyz, t=c.timeshift)
@@ -107,19 +105,18 @@ def run(save_path, filenames, ppt_id):
     #                                         len(u),
     #                                         min(counts),
     #                                         max(counts)])
-
+    # return
     # print(n_targets)
     n_gaps = len(datasets) - len(filenames)
     # plot_subsets(datasets, save_path)
 
-    explore.main(datasets, save_path)
+    # explore.main(datasets, save_path)
     # return
 
     # print(total_time)
-    save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
-                      ds.ppt_id, datasets[0].channels, save_path)
-    # return
-    # print('')
+    # save_dataset_info(n_targets, n_samples, n_gaps, time_between_targets, total_time,
+    #                   ds.ppt_id, datasets[0].channels, save_path)
+    
     learner.fit(datasets, save_path)
     
 

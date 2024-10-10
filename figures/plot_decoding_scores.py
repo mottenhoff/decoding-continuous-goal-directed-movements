@@ -1,7 +1,6 @@
 from pathlib import Path
 from itertools import product
 
-
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,9 +58,6 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
                         **{'label': 'chance level'} if label and ci==0 else {})
     return ax
 
-def stack_scores(data, key=None):
-    return np.stack([values['scores' if not key else key] for values in data.values()])
-
 def plot_overview(results, condition):
 
     # Set some values
@@ -70,16 +66,15 @@ def plot_overview(results, condition):
 
     metric = CC  # [CC, R2, MSE, RMSE]
 
-   # Get the data
-    scores = stack_scores(results).squeeze()
-    chance_levels = stack_scores(results, 'chance_levels')
-    # chance_levels = np.ones((16)) * 0.1 
-
-    # PLot the thing
-    ppts = np.array(list(results.keys()))
-    ppts_order = np.argsort(ppts)
-    ppts, scores, chance_levels = ppts[ppts_order], scores[ppts_order], chance_levels[ppts_order]
     
+    scores = {ppt: values['scores'] for ppt, values in results.items()}
+    chance_levels = {ppt: values['chance_levels_prediction'] for ppt, values in results.items()}
+
+    # Guarantee order
+    ppts = sorted(chance_levels.keys())
+    scores = np.stack([scores[ppt] for ppt in ppts]).squeeze()
+    chance_levels = np.stack([chance_levels[ppt] for ppt in ppts])
+
     xticks = np.arange(len(ppts))
     colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppts))]
 
@@ -93,7 +88,7 @@ def plot_overview(results, condition):
 
         ax.bar(xticks, mean, yerr=np.vstack([np.zeros(std.size), std]), color=colors)  # np.stack([(0, f) for f in std[freqs_i, :]]).T for only top errorbar
         
-        ax = hline_per_bar(ax, xticks, chance_levels[:, idx])
+        ax = hline_per_bar(ax, xticks, chance_levels[:, KINEMATIC_ORDER[idx]])
 
         # ax[idx].set_title(score_name)  # Sanity check
         ax.spines[['top', 'left', 'right']].set_visible(False)
@@ -123,6 +118,10 @@ def plot_overview(results, condition):
 
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
+    
+    # plt.show()
 
     fig.savefig(f'figure_output/decoder_scores_{condition}.png')
     fig.savefig(f'figure_output/decoder_scores_{condition}.svg')
+
+    plt.close('all')

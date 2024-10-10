@@ -66,6 +66,8 @@ def laplacian_reference(eeg, channels, step_size=1):
         contacts = channels[mask]
         nums = [int(re.sub('\D', '', c)) for c in contacts]  # Extract the numbers
 
+        prev_adj = np.array([])
+
         for e_curr in nums:
             # If adjacent contact is missing, np.where wont return a value
             i_adj = np.where((channels == f'{shaft}{e_curr - step_size}') | \
@@ -73,11 +75,51 @@ def laplacian_reference(eeg, channels, step_size=1):
 
             i_curr = np.where(channels==f'{shaft}{e_curr}')[0]
             
-            if i_adj.size > 0:
+            # If any neighbors AND two neighbors are not uniquely neigbors
+            # from each other, the apply the laplacian, otherwise do nothing.
+            # In the case of a unique neighbors applying a laplacian results
+            # in substracting a from b and b from a, inducing a corrrelation
+            # between a and b of -1. High collinearity causes problems for 
+            # the machine learning models.
+            if i_adj.size > 0 and \
+               not (prev_adj.size==1 and i_adj.size==1):  
                 new[:, i_curr] = eeg[:, i_curr] - np.expand_dims(eeg[:, i_adj].mean(axis=1), axis=1)
             else:
                 # In rare case of no adjacent contacts
                 new[:, i_curr] = eeg[:, i_curr]
+
+            # print(f'unique neighbors: {prev_adj.size==1 and i_adj.size==1}')
+            prev_adj = i_adj
+
+    # import matplotlib.pyplot as plt
+    # mask = np.array([20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33])
+
+    # fig, ax = plt.subplots(nrows=mask.size, ncols=2, sharex=True, figsize=(20, 12))
+    # for i, ch in enumerate(mask):
+    #     ax[i, 0].plot(eeg[:, ch])
+    #     ax[i, 1].plot(new[:, ch])
+
+    # ax[0, 0].set_title('before')
+    # ax[0, 1].set_title('after')
+    # plt.show()
+
+
+
+    # fig, ax = plt.subplots(figsize=(12, 12)); 
+    # im = ax.imshow(np.corrcoef(eeg, rowvar=False), cmap='viridis'); 
+    # ax.set_title('original')
+    # fig.colorbar(im);
+
+    # fig.savefig('lap_corrmat_eeg_before.png')
+
+
+    # fig, ax = plt.subplots(figsize=(12, 12)); 
+    # im = ax.imshow(np.corrcoef(new, rowvar=False), cmap='viridis'); 
+    # ax.set_title('new')
+    # fig.colorbar(im);
+    # fig.savefig('lap_corrmat_eeg_after.png')
+    # plt.show()
+    # plt.close('all')
 
     return new
 

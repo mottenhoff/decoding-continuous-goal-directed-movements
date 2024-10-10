@@ -21,7 +21,7 @@ def plot_vectors(xyz, trials, target_vector):
 
 def get_target_vector(trials, xyz):
 
-	target_vector = trials[:, 1:] - xyz
+	target_vector = trials[:, 1:] - xyz  # Triggers if first value = nan
 
 	if False:
 		plot_vectors(xyz, trials, target_vector)

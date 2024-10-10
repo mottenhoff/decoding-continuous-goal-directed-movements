@@ -145,7 +145,7 @@ def plot_scores_per_state(scores):
 
     return scores_per_state[0].argmax(), scores_per_state[0].max()
 
-def plot_mean_performance(scores, chance_levels):
+def plot_mean_performance(scores, chance_levels, name):
 
     jitter = lambda n: (np.arange(n) - n/2) + 0.5
 
@@ -183,19 +183,18 @@ def plot_mean_performance(scores, chance_levels):
     ax.set_ylabel('CC', fontsize='xx-large')
     ax.spines[['top', 'right']].set_visible(False)
 
-    # fig.legend(frameon=False) #, fontsize='x-large')
+    fig.legend(frameon=False) #, fontsize='x-large')
 
-    fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.png')
-    fig.savefig('./figure_output/mean_performance_per_band_per_kinematic.svg')
+    fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}.png')
+    fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}_.svg')
 
     return
 
-def plot(results, path):
+def plot(results, name):
     # results = [(best_paths, scores), ...]  delta, ab, bbhg
-
     # Gather the data
     scores =        stack_scores(results).squeeze()
-    chance_levels = stack_scores(results, 'chance_levels')
+    chance_levels = stack_scores(results, 'chance_levels_prediction')
 
     ### Plot it
     # _, _ = plot_freqs_vs_states(scores)
@@ -203,6 +202,6 @@ def plot(results, path):
     # best_state_i, best_state = plot_scores_per_state(scores)
 
 
-    plot_mean_performance(scores, chance_levels)
+    plot_mean_performance(scores, chance_levels, name)
 
     return

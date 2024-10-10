@@ -1,96 +1,72 @@
+acc: 1
 checks:
   concat_datasets: 0
   trials_vs_cont: 0
 combine: 1
-parallel: 0
-
+complete_model: 0
+debug:
+  active: 0
+  dummy_data: 1
+  log: 0
+  reduce_channels: 30
+  short: 0
+dist: 1
+downsample_rate: 20
+figures:
+  fig_1: 0
+  make_all: 0
+filters:
+  alphabeta: 1
+  bbhg: 0
+  delta: 0
+force: 1
 learn:
-
-  save: 1
-  save_path: ./results/
-
-  psid:
-    i: [5, 10, 25, 50] #, 100]
-    n1: [3, 5, 10, 20, 30]
-    nx: []
-
-  data:
-    min_n_windows: 1
-
   cv:
     gridsearch: false
-    inner_folds: 4 
-    outer_folds: 5
+    inner_folds: 4
     n_repeats: 1
-  
+    outer_folds: 5
+  data:
+    min_n_windows: 1
   fs:
     dim_reduction: 1
-    n_dims: 30
-    task_corr: 1
     greedy_forward: 0
     kbest: 0
-
+    n_dims: 30
     random: false
-  
-
-downsample_rate: 20
-
-
-debug:
-  active: 0  # Rename active
-  short: 0
-  dummy_data: 1
-  reduce_channels: 30  # incl in dummy data
-  log: 0
-
-figures:
-  make_all: 0
-  fig_1: 0
-
+    task_corr: 1
+  psid:
+    i:
+    - 5
+    - 10
+    - 25
+    - 50
+    n1:
+    - 3
+    - 5
+    - 10
+    - 20
+    - 30
+    nx: []
+  save: 1
+  save_path: ./results/
 missing_values:
-  xyz_samples_for_gaps: 4
   min_windows_to_incl_set: 5
-
+  xyz_samples_for_gaps: 4
 n_random_samples: 10
+parallel: 0
 plot: 0
-
-# Preprocessing
-# bands:
-#   lmp:
-#     - 0
-#     - 5
-
-#   # lfc:
-#   #   - 0
-#   #   - 30
-  
-#   # hfc:
-#   #   - 30
-#   #   - 200
-#   # beta:
-#   #   - 12
-#   #   - 30
-#   # hg:
-#   #   - 55
-#   #   - 95
-
+pos: 1
+random: 0
+rereferencing:
+  common_electrode_reference: 1
+  laplacian: 0
+save: 1
+speed: 1
+target_vector: 0
+timeshift: 0
+vel: 1
 window:
   go: 1
   length: 300
   shift: 50
-
-random: 0
-save: 1
-
-# Hand kinematics
-pos: 1
-vel: 1
-acc: 1
-dist: 1
-speed: 1
-force: 1
-
-target_vector: 1
-complete_model: 0
-
-timeshift: 0  # ms

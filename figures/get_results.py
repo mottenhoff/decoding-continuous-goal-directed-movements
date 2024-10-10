@@ -3,30 +3,22 @@ from pathlib import Path
 import yaml
 import numpy as np
 
-n_permutations = 10
+def load_chance_levels(path, name, percentile=0.95):
 
-def calculate_chance_level(z, zh, alpha=0.05, block_size=.1, n_repetitions=10):
-    # block size = % of data
+    filepath = list(path.glob(f'chance_levels_{name}_*'))
+    if not filepath:
+        raise FileNotFoundError(f'Could not find chance levels file for {path}. Did you run the calculation script?') 
 
-    n_samples = z.shape[0]
-    boundary = int(n_samples * block_size)
+    filepath = sorted(list(filepath))[-1]
+    # Load the file with the most permutations    
+    chance_levels = np.load(filepath)
 
-    permuted_ccs = np.empty((0, z.shape[1]))
-    for _ in np.arange(n_repetitions):
+    if name == 'prediction':
+        chance_levels = chance_levels[:, *np.diag_indices(chance_levels.shape[1])]
 
-        split_idx = np.random.choice(np.arange(boundary, n_samples - boundary))
-        z_permuted = np.concatenate([zh[split_idx:, :], zh[:split_idx, :]])
-
-        cc = [np.abs(np.corrcoef(zi, zhi)[0, 1]) for zi, zhi in zip(z.T, z_permuted.T)]
-
-        permuted_ccs = np.vstack([permuted_ccs, cc])
-
-    # true_ccs = [np.corrcoef(zi, zhi)[0, 1] for zi, zhi in zip(z.T, zh.T)]  # abs?
-
-    chance_idx = int(n_repetitions * (1-alpha))
-    chance_level = np.sort(permuted_ccs, axis=0)[chance_idx, :]
-
-    return chance_level, permuted_ccs
+    n_permutations = int(filepath.stem.split("_")[-1])
+    idx_nth_percentile = int(n_permutations * percentile)
+    return np.sort(np.abs(chance_levels), axis=0)[idx_nth_percentile, :]
 
 def get_best_scores(results):
     metric = lambda v: v['scores'][:, :, 0, :].mean(axis=1).sum(axis=-1).argmax()
@@ -61,20 +53,17 @@ def get_results(path_main, skip=False):
             print(f'Skipping {ppt_id}')
             continue
 
-        chance_levels = np.empty((0, 12))
-
         result = np.load(run/'results.npy')
         params = np.vstack([np.load(run/f'{i}'/'selected_params.npy') for i in range(5)])
-        
-        zh = np.vstack([np.load(run/f'{i}'/'trajectories.npy') for i in range(5)])
-        z = np.vstack([np.load(run/f'{i}'/'z.npy') for i in range(5)])
 
-        chance_levels, _ = calculate_chance_level(z, zh, n_repetitions=n_permutations)
+        chance_levels_prediction = load_chance_levels(run, 'prediction')
+        chance_levels_task = load_chance_levels(run, 'task_correlation')
 
         results.update({'_'.join(run.parts[-2:]): {'scores': result,
                                                    'params': params,
                                                    'paths': run,
-                                                   'chance_levels': chance_levels,
+                                                   'chance_levels_prediction': chance_levels_prediction,
+                                                   'chance_levels_task_correlation': chance_levels_task,
                                                    'datasize': run_info['datasize'],
                                                    'n_targets': run_info['n_targets']}})
 

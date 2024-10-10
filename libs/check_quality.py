@@ -105,7 +105,7 @@ class QualityChecker:
                                   channel_names: list=[],
                                   plot: bool=False) -> list:
         if channel_names:
-            pattern = r'(?<![A-Za-z])[Ee][l\d]'
+            pattern = r'(?<![A-Za-z])[Ee]+[l\d]'
             flagged_channels = [i for i, name in enumerate(channel_names) \
                                        if re.search(pattern, name)]
         else:

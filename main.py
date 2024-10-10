@@ -9,71 +9,41 @@ https://github.com/ShanechiLab/PyPSID
 
 PSID tutorial: https://github.com/ShanechiLab/PyPSID/blob/main/source/PSID/example/PSID_tutorial.ipynb
 '''
-
+import sys
 import logging
 import cProfile
 import pstats
 import io
 import re
-import sys
-from multiprocessing import Process, Pool
-from multiprocessing import cpu_count
+from multiprocessing import Pool
 from pathlib import Path
 from datetime import datetime as dt
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
-import numpy as np
 import yaml
 
-import run_decoder
-from libs import utils
+# Setup config file.
+# This is before the last imports because it needs to be 
+# updated before the imported modules load the config file.
+from libs import utils   # Local
 
-c = utils.load_yaml('./config.yml')
+try: 
+    config_path = sys.argv[1]
+    config = utils.load_yaml(config_path)
+
+    with open('config.yml', 'w') as f:
+        yaml.dump(utils.nested_namespace_to_dict(config), f)
+except IndexError:
+    logger = logging.getLogger(__name__)
+    logger.warning('No config supplied, using last available config file')
+finally:
+    c = utils.load_yaml('./config.yml')  
+  
+import run_decoder
+
 logger = logging.getLogger(__name__)
 
-def get_files(data_path, from_file=True):
-
-    if from_file:
-        
-        with open('./bubble_paths.txt', 'r') as f:
-            lines = f.readlines()
-        
-        return [Path(line.strip()) for line in lines]
-    
-    else:
-        to_exclude = ['mu002', 'left']
-
-        filenames = []
-        for file in data_path.rglob('*.xdf'):  # Takes long because it also iterates over /imaging folders
-            fullpath = str(file).lower()
-            
-            if not 'bubbles' in fullpath:
-                continue
-            
-            if any([exclude in fullpath for exclude in to_exclude]):
-                continue
-
-            filenames.append(file)
-
-        return filenames
-
-def init(main_path, id_):
-
-    path = main_path/id_
-    path.mkdir(parents=True, exist_ok=True)
- 
-    i = 0
-    while True:
-        new_path = path/f'{i}'
-        
-        try:
-            new_path.mkdir(parents=False, exist_ok=False)
-            path = new_path
-            break
-        except Exception:
-            i += 1
-            continue
+def init_logging(results_path):
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.WARNING)
@@ -82,23 +52,36 @@ def init(main_path, id_):
     
     log_filename = f'output.log'
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
-                        level=logging.INFO if not c.debug.log else logging.DEBUG,
+                        level=logging.ERROR if not c.debug.log else logging.DEBUG,
                         handlers=[
-                            logging.FileHandler(path/f'{log_filename}'),  # save to file
+                            logging.FileHandler(results_path/f'{log_filename}'),  # save to file
                             logging.StreamHandler(),  # print to terminal
                             console_handler])
 
+def init_results_path(main_path, ppt_id):
+    path = main_path/ppt_id
+    path.mkdir(parents=True, exist_ok=True)
+
+    # Create new folder if already exists.
+    # For example when multiple sessions per sub
+    dirs = sorted(list(path.iterdir()))
+    if dirs:
+        new_path = path/f'{int(dirs[-1].name) + 1}'
+    else:
+        new_path = path/'0'
+    new_path.mkdir(parents=True, exist_ok=False)
+    
     return path
 
-def init_run(filelist: list, main_path: Path):
-    ppt_id = re.findall(r'kh\d{3}', str(filelist[0]))[0]
-    id_ = int(ppt_id[-2:])
-    # id_ = int(re.findall(r'\d+', ppt_id)[0])
+def init_run(filelist: list, main_results_path: Path):
 
-    save_path = init(main_path, ppt_id)
+    ppt_id = filelist[0].parts[-3]
+
+    results_path = init_results_path(main_results_path, ppt_id)
+    save_path = init_logging(results_path)
 
     with cProfile.Profile() as pr:
-        run_decoder.run(save_path, filelist, id_)
+        run_decoder.run(save_path, filelist, ppt_id)
     
     s = io.StringIO()
     stats = pstats.Stats(pr, stream=s)
@@ -109,52 +92,36 @@ def init_run(filelist: list, main_path: Path):
         ps.sort_stats(pstats.SortKey.TIME)
         ps.print_stats()
 
+def main():
 
-if __name__=='__main__':
-
+    # Setup some paths
     main_path = Path(c.learn.save_path)
     today = dt.today().strftime('%Y%m%d_%H%M')
+
     main_path = main_path/today
     main_path.mkdir(parents=True, exist_ok=True)
 
-    data_path = Path(r'L:\FHML_MHeNs\sEEG')
+    # data_path = Path(sys.argv[2])
+    data_path = Path(r'C:\Users\micro\main\resources\data\bubbles-psid-2024')
+    filenames = list(data_path.rglob('*.xdf'))  # All xdf files.
 
-    filenames = get_files(data_path, from_file=True)
-
-    # Filter ppt_ids:
-    if ids := []: # 41,  53, 50
-        filenames = [file for file in filenames if int(file.parts[-2][-2:]) in ids]
-
-
+    # Combine multiple sessions of one participant
     if c.combine:
         files_per_ppt = defaultdict(list)
 
         for file in filenames:
-
-            files_per_ppt[re.findall(r'kh\d{3}', str(file))[0]].append(file)
+            
+            ppt_id = file.parts[-3]
+            files_per_ppt[ppt_id].append(file)
 
         jobs = list(files_per_ppt.values())
     else:
         jobs = [[file] for file in filenames]
-     
-    # missing = [
-    #         #    'kh040',
-    #         #    'kh041',
-    #         #    'kh042',
-    #         #    'kh045',
-    #         #    'kh047',
-    #         #    'kh048',
-    #         #    'kh051',
-    #         #    'kh052',
-    #         #    'kh053',
-    #         #    'kh056'
-    #            ] 
-    # jobs = [job for job in jobs if job[0].parts[3] in missing]
-
+    
     if c.parallel:
         
         pool = Pool(processes=8) #cpu_count())
-        for job in jobs:                                                                                      
+        for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()
         pool.join()
@@ -162,3 +129,10 @@ if __name__=='__main__':
     else:
         for job in jobs:
             init_run(job, main_path)  # job = [Filename, ...]
+
+
+if __name__=='__main__':
+    main()
+
+
+    

@@ -5,7 +5,6 @@ import logging
 from dataclasses import fields
 from pathlib import Path
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -142,7 +141,7 @@ def plot_gap_cuts(xyz, idc, subset_idc, dataset_num, save_path=None):
         ax.vlines(si, ymin=0, ymax=ylim_max, colors='g', linewidth=1, linestyles='--')
         ax.vlines(ei, ymin=0, ymax=ylim_max, colors='r', linewidth=1, linestyles='--')
 
-    path = f'./figures/checks/' if not save_path else save_path
+    path = Path(f'./figures/checks/') if not save_path else save_path
 
     fig.savefig(path/f'gap_cuts_{dataset_num}.png')
     fig.savefig(path/f'gap_cuts_{dataset_num}.svg')

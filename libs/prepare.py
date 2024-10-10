@@ -2,8 +2,10 @@ import logging
 from dataclasses import dataclass
 import pickle
 
+from bisect import bisect_right
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import libs.utils
 from libs.utils import filter_eeg, hilbert
@@ -77,25 +79,62 @@ def fill_missing_values(data):
 
     return pd.DataFrame(data).interpolate().to_numpy()
 
-# NumPy-only function
-def fill_missing_values_np(data):
-    data = np.array(data)
-    nan_indices = np.isnan(data).sum(axis=0)
-    nan_mean = np.mean(nan_indices)
-    print(f'Interpolating missing values: On average {nan_mean} samples ({nan_mean/data.shape[0]*100:.1f}%)')
+# # NumPy-only function
+# def fill_missing_values_np(data):
+#     data = np.array(data)
+#     nan_indices = np.isnan(data).sum(axis=0)
+#     nan_mean = np.mean(nan_indices)
+#     print(f'Interpolating missing values: On average {nan_mean} samples ({nan_mean/data.shape[0]*100:.1f}%)')
 
-    data = np.nan_to_num(data, nan=np.nan, copy=False)
-    for i in range(data.shape[1]):
-        column = data[:, i]
-        indices = np.arange(len(column))
-        valid_indices = indices[~np.isnan(column)]
-        invalid_indices = indices[np.isnan(column)]
-        data[:, i][invalid_indices] = np.interp(invalid_indices, valid_indices, column[valid_indices])
+#     data = np.nan_to_num(data, nan=np.nan, copy=False)
+#     for i in range(data.shape[1]):
+#         column = data[:, i]
+#         indices = np.arange(len(column))
+#         valid_indices = indices[~np.isnan(column)]
+#         invalid_indices = indices[np.isnan(column)]
+#         data[:, i][invalid_indices] = np.interp(invalid_indices, valid_indices, column[valid_indices])
 
-    return data
+#     return data
+def locate_pos(ts, target_ts):
+    pos = bisect_right(ts, target_ts)
+    if pos == 0:
+        return 0
+    if pos == len(ts):
+        return len(ts)-1
+    if abs(ts[pos]-target_ts) < abs(ts[pos-1]-target_ts):
+        return pos
+    else:
+        return pos-1
+
+def align_matrices_with_diff_fs(large, ts_large, small, ts_small):
+    '''
+    ts = timestamps
+    idc = align indices where values of small should be inserted in large
+    '''
+    small = small[:, np.newaxis] if small.ndim == 1 else small
+
+    small_ext = np.full((large.shape[0], small.shape[1]), np.nan)
+
+    idc = np.array([locate_pos(ts_large, nt) for nt in ts_small])  # inserted at
+    small_ext[idc, :] = small
+
+    return small_ext, idc
 
 def get_subset_idc(xyz, fs, dataset_num, path=None):
+    '''
+    Identifies the start and end index of subsets
+    in the data, by two metrics:
 
+    1) A gap is identified if n samples are missing. 
+        n is user defined in config.missing_values.xyz_samples_for_gaps.
+    2) A subset is rejected if it contains less than 
+        n windows, 
+        n windows is user defined in c.missing_values.min_windows_to_incl_set. 
+
+    Returns:
+        list of tuples containing start and end index of a subset
+        [(idx_start, idx_end), ...]
+    '''
     n = c.missing_values.xyz_samples_for_gaps  # Samples in Xyz for missing
 
     # Get absolute amount of samples in subset for at least 1 windows
@@ -104,13 +143,14 @@ def get_subset_idc(xyz, fs, dataset_num, path=None):
     # Check if the user set amount of windows is met
     min_samples = np.ceil(c.missing_values.min_windows_to_incl_set * min_samples)
 
+    # Idenify gaps
     idc = np.where(~np.isnan(xyz[:, 0]))[0] 
-
     diff = np.diff(idc)
-    gaps = np.where(diff > n*diff.mean())[0] # about 100 samples...
-
+    gaps = np.where(diff > n*diff.mean())[0] # about 100 samples... (5 samples in xyz time)
     gaps = np.hstack((-1, gaps, idc.size-1))
     
+    # Find start and end indices of subsets, and reject
+    # subsets with too little data.
     subset_idc = [(idc[start_i], idc[end_i]) for start_i, end_i in zip(gaps[:-1]+1, gaps[1:]) \
                                              if (idc[end_i] - idc[start_i]) > min_samples]
 
@@ -123,11 +163,21 @@ def frequency_decomposition(eeg: np.array, fs: float):
     frequency_ab    = [8, 30]
     frequency_bbhg  = [55, 200]
 
-    return np.hstack([
-        filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])
-        # hilbert(filter_eeg(eeg, fs, frequency_ab[0],   frequency_ab[1]))
-        # hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))
-    ])
+    filtered = []
+    
+    if c.filters.delta:
+        filtered += [filter_eeg(eeg, fs, frequency_delta[0], frequency_delta[1])]
+
+    if c.filters.alphabeta:
+        filtered += [hilbert(filter_eeg(eeg, fs, frequency_ab[0], frequency_ab[1]))]
+    
+    if c.filters.bbhg:
+        filtered += [hilbert(filter_eeg(eeg, fs, frequency_bbhg[0], frequency_bbhg[1]))]
+
+    if not filtered:
+        filtered = [eeg]
+
+    return np.hstack(filtered)
 
 
 def go(ds, save_path, ds_idx):
@@ -148,8 +198,38 @@ def go(ds, save_path, ds_idx):
     
     # import matplotlib.pyplot as plt
 
-    ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
+    # ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
     # ds.eeg.channels = np.concatenate([list(map(lambda x: x + f'-{band}', ds.eeg.channels)) for band in ['delta', 'alphabeta', 'bbhg']])  # Uncomment if problems later
+
+    # Align xyz to higher samples eeg
+    xyz, inserted_idc_xyz = align_matrices_with_diff_fs(
+                                ds.eeg.timeseries,
+                                ds.eeg.timestamps,
+                                ds.xyz,
+                                ds.xyz_timestamps)
+    
+    trials, inserted_idc_trials = align_matrices_with_diff_fs(
+                                    ds.eeg.timeseries,
+                                    ds.eeg.timestamps,
+                                    ds.trials, 
+                                    ds.xyz_timestamps)
+
+    target_vector, inserted_idc_trials = align_matrices_with_diff_fs(
+                                    ds.eeg.timeseries,
+                                    ds.eeg.timestamps,
+                                    ds.target_vector, 
+                                    ds.xyz_timestamps)
+
+    ds.xyz = xyz
+    ds.trials = trials
+    ds.target_vector = target_vector
+    
+    # indices_with_value = np.where(~np.isnan(ds.xyz[:, 0]))[0]
+    # ds
+
+    assert inserted_idc_xyz[0] == inserted_idc_trials[0], logger.error('xyz and trials misaligned!')
+    assert inserted_idc_xyz.size == inserted_idc_trials.size, logger.error('xyz and trials differ in size!')
+    
 
     subset_idc = get_subset_idc(ds.xyz, ds.eeg.fs, ds_idx, path=save_path)
 
@@ -167,25 +247,38 @@ def go(ds, save_path, ds_idx):
                         fs  =           ds.eeg.fs,
                         channels =      ds.eeg.channels,
                         mapping =       ds.eeg.channel_map)
-        
-        if (~np.isnan(subset.xyz)).sum() == 0:
-            logger.error('No values in subset!')
-            raise Exception('No values in subset!')
 
-        if c.target_vector:
+        # fig, ax = plt.subplots()
+        # idc = np.where(~np.isnan(ds.trials[:, 0]))[0]
+        # ax.scatter(idc, ds.trials[idc, 1])
+        # ax.plot(idc, ds.trials[idc, 1])
+        # ax.axvline(s, color='green')
+        # ax.axvline(e, color='red')
 
-            if (~np.isnan(subset.target_vector)).sum() == 0:
-                print(s, e)
+        # Sometimes there is no trial information, making the 
+        print()
+        # Breaks when there is a gap, but too short to be filled as subset
+        # assert (np.where(~np.isnan(subset.xyz[:, 0]))[0] == np.where(~np.isnan(subset.trials[:, 0]))[0]).all(), logger.error('xyz and trials idc are not identical!')
 
-                # plt.show()
-                # raise Exception('TV has no values in subset!')
-                logger.warning('TV has no values in subset!')
-                continue
+        # if (~np.isnan(subset.xyz)).sum() == 0:
+        #     logger.error('No values in subset!')
+        #     raise Exception('No values in subset!')
+
+        if c.target_vector:  # If triggered, then xyz and trials are misalinged
+
+            # if (~np.isnan(subset.target_vector)).sum() == 0:
+            #     print(s, e)
+
+            #     # plt.show()
+            #     # raise Exception('TV has no values in subset!')
+            #     logger.warning('TV has no values in subset!')
+            #     continue
             
             subset.xyz = subset.target_vector
 
         subset.xyz = kinematics.get_all(subset, has_target_vector=c.target_vector)
         
+        before = subset.xyz.copy()
         subset.xyz = fill_missing_values(subset.xyz)
         
 
@@ -204,13 +297,10 @@ def go(ds, save_path, ds_idx):
         subset.xyz = get_windows(subset.ts, subset.xyz, subset.fs, c.window.length, c.window.shift)
 
         if np.isnan(subset.xyz).sum() > 0:
-            logger.error('Missing values found after filling missing values!')
+            logger.error('Missing values found after filling missing values van windowing!')
             raise Exception('Missing values found after filling missing values!')
 
         subsets.append(subset)
-
-    # import matplotlib.pyplot as plt
-    # plt.show()
 
     with open(save_path/f'behavior_per_trial_{ds_idx}.pkl', 'wb') as f:
         pickle.dump(behavior_per_trial, f)

@@ -9,6 +9,12 @@ figures/checks/*
 finished_runs/**/*
 move_files.sh
 figure_output/*
+transfer_learning.py
+./config.yml
+contact_information.txt
+run_all.bat
+
+DPAD/
 
 bubble_paths.txt
 _archive/

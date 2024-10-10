@@ -15,17 +15,19 @@ from sklearn.linear_model import LinearRegression
 
 import libs.utils
 from libs import checks
+from libs.explore import task_correlations
 from libs.feature_selection.forward_feature_selection import forward_feature_selection
 from libs.feature_selection.kbest import select_k_best
 from libs.feature_selection.top_correlated import select_top_correlated
 from figures import all_figures
 from figures import checks as fig_checks
 
+
 CC = 0
 
 logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
-rs = RandomState(MT19937(SeedSequence(62277783366)))
+rs = RandomState(MT19937(SeedSequence(62277783366)))  # TODO: Make sure to use this random state correctly.
 
 def save(path, **kwargs):
     config = deepcopy(c)
@@ -85,36 +87,22 @@ def select_valid_datasets(datasets, i, k):
 
     return selected
 
+def plot_kinematics(z, subset_starts, save_path, name):
 
-def sanity_check(datasets):
-    nx, n1, i = 10, 10, 10
+    fig, axs = plt.subplots(nrows=3, ncols=4, sharex=True,
+                            figsize=(19, 13))
 
-    # eeg, xyz = datasets[0].eeg, datasets[0].xyz
+    order = [0, 1, 2, 9, 3, 4, 5, 10, 6, 7, 8, 11]
+    for i_kin, ax in zip(order, axs.flatten()):
+        ax.plot(z[:, i_kin])
+
+        for vline in subset_starts:
+            ax.axvline(vline, color='r', linestyle='--')
+        ax.set_title(f'{name} {i_kin}')
     
-    if len(datasets) > 1:
-        y_train = np.vstack([datasets[0].eeg, datasets[1].eeg])
-        z_train = np.vstack([datasets[0].xyz, datasets[1].xyz])
-    else:
-        y_train = datasets[0].eeg
-        z_train = datasets[0].xyz
-    y_test  = datasets[2].eeg
-    z_test  = datasets[2].xyz 
-
-    # samples = 900
-
-    # # n = 2520
-    # y_train, z_train = eeg[:samples, :], xyz[:samples, :]  # = 2000 samples
-    # y_test, z_test   = eeg[samples:, :], xyz[samples:, :]  # = 520 samples
-
-    id_sys = PSID.PSID(y_train, z_train, nx, n1, i)
-
-    z_hat, y_hat, x_hat = id_sys.predict(y_test)
-
-    logger.info('Sanity check:')
-    logger.info(f'\tR2 [z]: {eval_prediction(z_test, z_hat, "R2").mean():.3f}')
-    logger.info(f'\tR2 [y]: {eval_prediction(y_test, y_hat, "R2").mean():.3f}')
-
-    return 0
+    fig.tight_layout()
+    fig.savefig(save_path/f'{name}.png')
+    fig.savefig(save_path/f'{name}.svg')
 
 def get_psid_params(n_states, relevant, horizons):
     if not n_states:
@@ -123,7 +111,6 @@ def get_psid_params(n_states, relevant, horizons):
     else:
         for nx, n1, i in product(n_states, relevant, horizons):
             yield nx, n1, i
-
 
 def fit(datasets, save_path):
 
@@ -137,23 +124,10 @@ def fit(datasets, save_path):
 
     datasets = select_valid_datasets(datasets, max(c.learn.psid.i), c.learn.data.min_n_windows)
 
+    task_correlations(datasets, save_path)
+
     y = np.vstack([s.eeg for s in datasets])
     z = np.vstack([s.xyz[:, target_kinematics] for s in datasets])
-
-    # import matplotlib.pyplot as plt
-
-    # idc = np.where(~np.isnan(z))[0]
-
-
-    # fig, ax = plt.subplots(nrows=3)
-    # ax[0].plot(z[idc, 9])
-    # ax[1].plot(z[idc, 10])
-    # ax[2].plot(z[idc, 11])
-    # plt.show()
-
-
-    # np.save(save_path/'y.npy', y)
-    # return
 
     n_z = target_kinematics.size
 
@@ -161,11 +135,11 @@ def fit(datasets, save_path):
     n_outer_folds = c.learn.cv.outer_folds
     n_inner_folds = c.learn.cv.inner_folds
     n_samples =     c.learn.cv.n_repeats
-    
+
     outer_folds = np.array_split(np.arange(y.shape[0]), n_outer_folds)
 
     # Define the grid
-    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
+    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, [5]
     grid_params = list(get_psid_params(n_states, relevant, horizons))
     n_grid_params = len(grid_params)
 
@@ -189,34 +163,32 @@ def fit(datasets, save_path):
         inner_scores = np.empty((n_inner_folds, n_grid_params, n_metrics, n_z))
         inner_folds = np.array_split(np.arange(y_train.shape[0]), n_inner_folds)
         
+        fold_metrics = []
         for i_grid, (nx, n1, i) in enumerate(grid_params):
 
             if (nx < n1) or (n1 > i*n_z):
                 continue
         
-            # CV inner
-            for i_inner, inner_fold in enumerate(inner_folds):
+            selected_method_code, iCVRes = fitDPADWithFlexibleNonlinearity(
+                y_train, Z=z_train, nx=nx, n1=n1,
+                settings=learner_settings,
+                methodCode=method_code,
+                saveDir='./dpad_output'
+            )
 
-                y_train_test, y_train_train = y_train[inner_fold, :], np.delete(y_train, inner_fold, axis=0)
-                z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
-                
-                # Fit and score PSID
-                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
-                
-                zh, yh, xh = id_sys.predict(y_train_test)
-                metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
+            id_sys = DPADModel()
+            id_sys.fit(y_train.T, Z=z_train.T, nx=nx, n1=n1, epochs=2500, **args)
 
-                # print(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
-                logger.info(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
-                # Save scores per inner fold
-                inner_scores[i_inner, i_grid, :, :] = metrics
+            zh, yh, xh = id_sys.predict(y_train)
+            metrics = np.vstack([eval_prediction(z_train, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
+
+            print(f'Fold: {i_outer} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+            fold_metrics += [metrics]
 
 
-        # Calculate best params
-        best_scores = inner_scores[:, :, 0, :].sum(axis=-1)
-        i_best_params = np.argmax(best_scores.mean(axis=0))  # Selects best params on highest summed correlation
-        best_params = grid_params[i_best_params]
-        logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
+        fold_metrics = np.array(fold_metrics)
+        print(f'Fold: {i_outer} | cc={fold_metrics.mean(axis=0)[0]:.2f} | nx={nx} n1={n1} i={i}')
+        
         
         # Re-train PSID
         id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)

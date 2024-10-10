@@ -13,6 +13,8 @@ def task_correlations(datasets, savepath):
     cm = np.corrcoef(np.hstack([y, z]), rowvar=False)
     task_correlations = cm[-z.shape[1]:, :y.shape[1]]
 
+    # TODO: Monte Carlo simulation, same as significance testing using in decoding performance.
+
     task_correlations = np.vstack([datasets[0].channels, task_correlations]) # first row is the corresponding channel_names
 
     with open(savepath/'task_correlations.npy', 'wb') as f:
@@ -46,8 +48,9 @@ def plot_trajectory(datasets, savepath, all_sets=True):
     fig.savefig(savepath/'trajectories_with_targets.png')
     fig.savefig(savepath/'trajectories_with_targets.svg')
 
+
 def main(datasets, savepath):
-    task_correlations(datasets, savepath)
+    # task_correlations(datasets, savepath)
     # plot_trajectory(datasets, savepath)
     plt.close('all')
     

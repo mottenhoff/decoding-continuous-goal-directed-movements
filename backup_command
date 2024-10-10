@@ -1,1 +1,0 @@
-zip -r backup.zip ./* -x "animations/*" "data/*/*.xdf" "_archive/*" "./finished_runs/*" "./figure_output/control/*"

@@ -78,7 +78,7 @@ def locate_pos(ts, target_ts):
     if abs(ts[pos]-target_ts) < abs(ts[pos-1]-target_ts):
         return pos
     else:
-        return pos-1    
+        return pos-1
 
 def str_to_list(s): 
     s = s.strip('[]')
@@ -236,6 +236,13 @@ def get_trials(leap, events):
     
     targets = get_target_per_sample(trial_nums, events.target_reached)
     trials = np.hstack((np.expand_dims(trial_nums, axis=1), targets))
+
+
+    if np.isnan(trials[0][0]):
+        # Occasionally, the values are filled from the second
+        # index. If so fill the first row with the second row.
+        trials[0, :] = trials[1, :]
+
     return trials
 
 def get_target_per_sample(trial_nums, targets):
@@ -266,23 +273,23 @@ def align(leap, events):
 
     return events, trials
 
-def align_matrices_with_diff_fs(l, ts_l, s, ts_s):
-    '''
-    l = larger matrix
-    s = smaller matrix
+# def align_matrices_with_diff_fs(l, ts_l, s, ts_s):
+#     '''
+#     l = larger matrix
+#     s = smaller matrix
 
-    ts = timestamps
-    idc = align indices where values of s should be inserted in l
-    '''
-    s = s[:, np.newaxis] if s.ndim == 1 else s
+#     ts = timestamps
+#     idc = align indices where values of s should be inserted in l
+#     '''
+#     s = s[:, np.newaxis] if s.ndim == 1 else s
 
-    s_ext = np.full((l.shape[0], s.shape[1]), np.nan)
+#     s_ext = np.full((l.shape[0], s.shape[1]), np.nan)
 
-    idc = np.array([locate_pos(ts_l, nt) for nt in ts_s])
-    s_ext[idc, :] = s
+#     idc = np.array([locate_pos(ts_l, nt) for nt in ts_s])
+#     s_ext[idc, :] = s
 
-    return s_ext, idc
-    # return np.hstack((l, s_ext)), idc
+#     return s_ext, idc
+#     # return np.hstack((l, s_ext)), idc
 
 def leap_to_bubble_space(xyz, fn_t):
     '''
@@ -325,22 +332,12 @@ def load_dataset(path, ppt_id):
     xyz = leap_to_bubble_space(leap['data'], fn_t)        
     xyz_ts = leap['ts']
 
-    # Center to 0, 0, 0
-    # screen_dimensions = get_screen_dimensions(markers)
-    # xyz[:, 0] -= screen_dimensions[0] / 2
-    # xyz[:, 1] -= screen_dimensions[1] / 2
-    # xyz[:, 2] -= 60
-    # NOTE: Also requires all target markers to be adjusted
-
-
     target_vector = get_target_vector(trials, xyz) # if c.target_vector else np.array([])
 
-    # xyz = kinematics.get_all(xyz, xyz_ts)
-    
-    xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
-                                           xyz, xyz_ts)
-    trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
-                                              trials, xyz_ts)
+    # xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
+    #                                        xyz, xyz_ts)
+    # trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
+    #                                           trials, xyz_ts)
 
     eeg['channel_mapping'] = load_locations(path.parent/'electrode_locations.csv')
 
