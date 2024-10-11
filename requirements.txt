@@ -3,5 +3,6 @@ pyyaml
 numpy
 scipy
 mne
-PSID
-
+PSID==1.1
+cmcrameri
+pyxdf

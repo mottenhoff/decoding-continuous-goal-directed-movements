@@ -163,32 +163,40 @@ def fit(datasets, save_path):
         inner_scores = np.empty((n_inner_folds, n_grid_params, n_metrics, n_z))
         inner_folds = np.array_split(np.arange(y_train.shape[0]), n_inner_folds)
         
-        fold_metrics = []
         for i_grid, (nx, n1, i) in enumerate(grid_params):
 
             if (nx < n1) or (n1 > i*n_z):
                 continue
         
-            selected_method_code, iCVRes = fitDPADWithFlexibleNonlinearity(
-                y_train, Z=z_train, nx=nx, n1=n1,
-                settings=learner_settings,
-                methodCode=method_code,
-                saveDir='./dpad_output'
-            )
+            for i_inner, inner_fold in enumerate(inner_folds):
 
-            id_sys = DPADModel()
-            id_sys.fit(y_train.T, Z=z_train.T, nx=nx, n1=n1, epochs=2500, **args)
-
-            zh, yh, xh = id_sys.predict(y_train)
-            metrics = np.vstack([eval_prediction(z_train, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
-
-            print(f'Fold: {i_outer} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
-            fold_metrics += [metrics]
+                y_train_test, y_train_train = y_train[inner_fold, :], np.delete(y_train, inner_fold, axis=0)
+                z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
+                
+                # Fit and score PSID
+                try:
+                    id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
+                except np.linalg.LinAlgError as e:
+                    logger.error('SVD did not converge.')
+                except UnboundLocalError as e:
+                    logger.error('Error undefined, but probably: SVD did not converge.')
+                    raise Exception
 
 
-        fold_metrics = np.array(fold_metrics)
-        print(f'Fold: {i_outer} | cc={fold_metrics.mean(axis=0)[0]:.2f} | nx={nx} n1={n1} i={i}')
-        
+                zh, yh, xh = id_sys.predict(y_train_test)
+                metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
+
+                logger.info(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+
+                inner_scores[i_inner, i_grid, :, :] = metrics
+
+        logger.info(f'Fold: {i_outer} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+
+        # Calculate best params
+        best_scores = inner_scores[:, :, 0, :].sum(axis=-1)
+        i_best_params = np.argmax(best_scores.mean(axis=0))  # Selects best params on highest summed correlation
+        best_params = grid_params[i_best_params]
+        logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
         
         # Re-train PSID
         id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)
@@ -199,8 +207,6 @@ def fit(datasets, save_path):
         path = save_path/f'{i_outer}'
         path.mkdir(exist_ok=True)
         
-        # TOdo: What to save 
-
         np.save(path/'z.npy', z_test)
         np.save(path/'y.npy', y)
         np.save(path/'trajectories.npy', zh)

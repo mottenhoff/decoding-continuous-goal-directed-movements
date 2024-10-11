@@ -27,6 +27,8 @@ import yaml
 # updated before the imported modules load the config file.
 from libs import utils   # Local
 
+logger = logging.getLogger(__name__)
+
 try: 
     config_path = sys.argv[1]
     config = utils.load_yaml(config_path)
@@ -34,29 +36,30 @@ try:
     with open('config.yml', 'w') as f:
         yaml.dump(utils.nested_namespace_to_dict(config), f)
 except IndexError:
-    logger = logging.getLogger(__name__)
+    # logger = logging.getLogger(__name__)
     logger.warning('No config supplied, using last available config file')
 finally:
     c = utils.load_yaml('./config.yml')  
   
 import run_decoder
 
-logger = logging.getLogger(__name__)
 
 def init_logging(results_path):
 
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.WARNING)
-    # console_handler.setLevel(logging.INFO)
+    # console_handler.setLevel(logging.WARNING)
+    console_handler.setLevel(logging.INFO)
     # console_handler.setLevel(logging.DEBUG)
     
     log_filename = f'output.log'
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
-                        level=logging.ERROR if not c.debug.log else logging.DEBUG,
+                        level=logging.INFO if not c.debug.log else logging.DEBUG,
                         handlers=[
                             logging.FileHandler(results_path/f'{log_filename}'),  # save to file
                             logging.StreamHandler(),  # print to terminal
-                            console_handler])
+                            # console_handler
+                            ])
+    return
 
 def init_results_path(main_path, ppt_id):
     path = main_path/ppt_id
@@ -64,7 +67,7 @@ def init_results_path(main_path, ppt_id):
 
     # Create new folder if already exists.
     # For example when multiple sessions per sub
-    dirs = sorted(list(path.iterdir()))
+    dirs = sorted([d for d in path.iterdir() if d.is_dir()])
     if dirs:
         new_path = path/f'{int(dirs[-1].name) + 1}'
     else:
@@ -77,9 +80,10 @@ def init_run(filelist: list, main_results_path: Path):
 
     ppt_id = filelist[0].parts[-3]
 
-    results_path = init_results_path(main_results_path, ppt_id)
-    save_path = init_logging(results_path)
+    save_path = init_results_path(main_results_path, ppt_id)
+    init_logging(save_path)
 
+    # The main loop starts here
     with cProfile.Profile() as pr:
         run_decoder.run(save_path, filelist, ppt_id)
     
