@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 
 from cmcrameri import cm
 
+import figures.plot_dataset
+
 cmap = cm.batlow
 
 def task_correlations(datasets, savepath):
@@ -50,10 +52,10 @@ def plot_trajectory(datasets, savepath, all_sets=True):
 
 
 def main(datasets, savepath):
-    # task_correlations(datasets, savepath)
-    # plot_trajectory(datasets, savepath)
+    task_correlations(datasets, savepath)
+    plot_trajectory(datasets, savepath)
+    figures.plot_dataset.plot_subsets(datasets, savepath)
+    for num, dataset in enumerate(datasets):
+        figures.plot_dataset.plot_random_selection_per_trial(dataset, num, savepath) # Currently broken 
     plt.close('all')
-    
-
-
     return

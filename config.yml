@@ -2,7 +2,7 @@ acc: 1
 checks:
   concat_datasets: 0
   trials_vs_cont: 0
-combine: 1
+combine: 0
 complete_model: 0
 debug:
   active: 0
@@ -16,9 +16,9 @@ figures:
   fig_1: 0
   make_all: 0
 filters:
-  alphabeta: 1
+  alphabeta: 0
   bbhg: 0
-  delta: 0
+  delta: 1
 force: 1
 learn:
   cv:

@@ -174,54 +174,53 @@ def fit(datasets, save_path):
                 z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
                 
                 # Fit and score PSID
-                try:
-                    id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
-                except np.linalg.LinAlgError as e:
-                    logger.error('SVD did not converge.')
-                except UnboundLocalError as e:
-                    logger.error('Error undefined, but probably: SVD did not converge.')
-                    raise Exception
+                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
+
+                # try:
+                #     id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
+                # except np.linalg.LinAlgError as e:
+                #     logger.error('SVD did not converge.')
+                # except UnboundLocalError as e:
+                #     logger.error('Error undefined, but probably: SVD did not converge.')
+                #     raise Exception
 
 
                 zh, yh, xh = id_sys.predict(y_train_test)
                 metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
 
-                logger.info(f'Fold: {i_outer}-{i_inner} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+                logger.info(f'Fold: {i_outer}-{i_inner} | Vcc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
 
                 inner_scores[i_inner, i_grid, :, :] = metrics
 
-        logger.info(f'Fold: {i_outer} | cc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
+        logger.info(f'Fold: {i_outer} | Vcc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
 
-        # Calculate best params
+        # Calculate best params (i.e. best n1 and best i)
         best_scores = inner_scores[:, :, 0, :].sum(axis=-1)
         i_best_params = np.argmax(best_scores.mean(axis=0))  # Selects best params on highest summed correlation
         best_params = grid_params[i_best_params]
         logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
         
-        # Re-train PSID
+        # Re-train PSID based on the inner-fold grid search
         id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)
         zh, yh, xh = id_sys.predict(y_test)
-
         metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
 
+        # Save results from the outer fold
         path = save_path/f'{i_outer}'
         path.mkdir(exist_ok=True)
         
-        np.save(path/'z.npy', z_test)
-        np.save(path/'y.npy', y)
-        np.save(path/'trajectories.npy', zh)
-        np.save(path/'latent_states.npy', yh)
-        np.save(path/'selected_params.npy', best_params)
+        np.save(path/'z.npy',                 z_test)
+        np.save(path/'y.npy',                 y)
+        np.save(path/'trajectories.npy',      zh)
+        np.save(path/'latent_states.npy',     yh)
+        np.save(path/'selected_params.npy',   best_params)
         np.save(path/'selected_channels.npy', features)
 
         results[0, i_outer, :, :] = metrics
         cv_best_params[0, i_outer, :] = best_params
 
     # Save overal information (results from best params)'
-    
-    # id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
-    id_sys = PSID.PSID(y, z, 30, 30, 5, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
-    pickle.dump(id_sys, open(save_path/'trained_model.pkl', 'wb'))
+    id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
 
     np.save(save_path/'y.npy', y)
     np.save(save_path/'z.npy', z)

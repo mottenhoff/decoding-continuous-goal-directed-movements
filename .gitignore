@@ -10,9 +10,11 @@ finished_runs/**/*
 move_files.sh
 figure_output/*
 transfer_learning.py
-./config.yml
+config.yml
 contact_information.txt
 run_all.bat
+data_cued_for_removal
+todo.md
 
 DPAD/
 

@@ -120,8 +120,8 @@ def main():
 
         jobs = list(files_per_ppt.values())
     else:
-        jobs = [[file] for file in filenames]
-    
+        jobs = [[file] for file in filenames] 
+
     if c.parallel:
         
         pool = Pool(processes=8) #cpu_count())
@@ -133,7 +133,7 @@ def main():
     else:
         for job in jobs:
             init_run(job, main_path)  # job = [Filename, ...]
-
+            break
 
 if __name__=='__main__':
     main()

@@ -6,3 +6,4 @@ mne
 PSID==1.1
 cmcrameri
 pyxdf
+polars

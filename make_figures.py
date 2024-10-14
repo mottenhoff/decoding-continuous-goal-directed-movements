@@ -8,15 +8,15 @@ from pathlib import Path
 # from figures.all_figures import make_overview
 
 # from figures import summarize, 
-# from figures import plot_decoding_scores
+from figures import plot_decoding_scores
 # from figures import plot_overview_over_bands
 # from figures import gaps_vs_performance
 # from figures import latent_state_comparisons
 # from figures import plot_dataset_metrics
-# from figures import get_results as gr
+from figures import get_results as gr
 # from figures import plot_task_correlations
 
-from figures import plot_3d_brains_significance
+# from figures import plot_3d_brains_significance
 
 # from libs import utils
 # c = utils.load_yaml('./config.yml')
@@ -36,15 +36,19 @@ if __name__=='__main__':
         Path(r'finished_runs/alphabeta_cer_tv'),
         Path(r'finished_runs\bbhg_cer_tv')
         ] 
+    
+    all_paths = [
+        Path(r'results\full-run-2')
+    ]
 
+# results\full-run-2\sub-01\behavior_per_trial_0.pkl
+    # plot_3d_brains_significance.main()
 
-    plot_3d_brains_significance.main()
+    results = {path.stem: gr.get_results(path) for path in all_paths}
 
-    # results = {path.stem: gr.get_results(path) for path in all_paths}
-
-    # Individual decoding scores per kinematic
-    # for condition, result in results.items():
-    #     plot_decoding_scores.plot_overview(result, condition)
+    # # Individual decoding scores per kinematic
+    for condition, result in results.items():
+        plot_decoding_scores.plot_overview(result, condition)
 
     # Aggregated decoding performance per kinematic
     # for opt in [
