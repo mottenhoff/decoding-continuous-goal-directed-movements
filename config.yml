@@ -2,7 +2,7 @@ acc: 1
 checks:
   concat_datasets: 0
   trials_vs_cont: 0
-combine: 0
+combine: 1
 complete_model: 0
 debug:
   active: 0
@@ -63,7 +63,7 @@ rereferencing:
   laplacian: 0
 save: 1
 speed: 1
-target_vector: 0
+target_vector: 1
 timeshift: 0
 vel: 1
 window:

@@ -31,14 +31,16 @@ def get_best_scores(results):
 
     return best_results, best_score_idc
 
-def get_results(path_main, skip=False):
+def get_results(path_main, path_data, skip=False):
 
-    all_runs = [session for ppt in path_main.iterdir() if ppt.is_dir() for session in ppt.iterdir()]
-    
+    # all_runs = [session for ppt in path_main.iterdir() if ppt.is_dir() for session in ppt.iterdir()]
+    all_runs = [ppt for ppt in path_main.iterdir() if ppt.is_dir()]
+
+
     results = {}
     for run in all_runs:
         
-        ppt_id = run.parts[-2]
+        ppt_id = run.name
 
         if Path(run/'profile.prof') not in run.iterdir():
             continue
@@ -46,7 +48,7 @@ def get_results(path_main, skip=False):
         with open(run/'info.yml') as f:
             run_info = yaml.load(f, Loader=yaml.FullLoader)
         
-        with open(f'./data/{ppt_id}/info.yaml') as f:
+        with open(path_data/ppt_id/'info.yaml') as f:
             recording_info = yaml.load(f, Loader=yaml.FullLoader)
 
         if recording_info['problems_left'] and skip:

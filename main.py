@@ -15,6 +15,7 @@ import cProfile
 import pstats
 import io
 import re
+from os import cpu_count
 from multiprocessing import Pool
 from pathlib import Path
 from datetime import datetime as dt
@@ -106,7 +107,7 @@ def main():
     main_path.mkdir(parents=True, exist_ok=True)
 
     # data_path = Path(sys.argv[2])
-    data_path = Path(r'C:\Users\micro\main\resources\data\bubbles-psid-2024')
+    data_path = Path(r'../data/')
     filenames = list(data_path.rglob('*.xdf'))  # All xdf files.
 
     # Combine multiple sessions of one participant
@@ -124,7 +125,7 @@ def main():
 
     if c.parallel:
         
-        pool = Pool(processes=8) #cpu_count())
+        pool = Pool(processes=cpu_count())
         for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()
@@ -133,7 +134,7 @@ def main():
     else:
         for job in jobs:
             init_run(job, main_path)  # job = [Filename, ...]
-            break
+            
 
 if __name__=='__main__':
     main()

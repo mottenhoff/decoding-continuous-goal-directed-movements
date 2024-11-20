@@ -4,10 +4,12 @@ import pickle
 from copy import deepcopy
 from pathlib import Path
 from itertools import product
+from os import cpu_count
 
 import matplotlib.pyplot as plt
 import numpy as np
 import PSID
+import DPAD
 import yaml
 from numpy.random import MT19937, RandomState, SeedSequence
 from PSID.evaluation import evalPrediction as eval_prediction
@@ -174,16 +176,11 @@ def fit(datasets, save_path):
                 z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
                 
                 # Fit and score PSID
-                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
+                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
 
-                # try:
-                #     id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i) #, zscore_Y=True, zscore_Z=True)
-                # except np.linalg.LinAlgError as e:
-                #     logger.error('SVD did not converge.')
-                # except UnboundLocalError as e:
-                #     logger.error('Error undefined, but probably: SVD did not converge.')
-                #     raise Exception
-
+                # id_sys = DPAD.DPADModel()
+                # args = id_sys.prepare_args('DPAD_RTR2_Cz2HL128U_ErSV16')
+                # id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
 
                 zh, yh, xh = id_sys.predict(y_train_test)
                 metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
@@ -220,7 +217,8 @@ def fit(datasets, save_path):
         cv_best_params[0, i_outer, :] = best_params
 
     # Save overal information (results from best params)'
-    id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
+    # id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
+
 
     np.save(save_path/'y.npy', y)
     np.save(save_path/'z.npy', z)

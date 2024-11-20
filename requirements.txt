@@ -1,9 +1,11 @@
-# python=3.11.9
+# python==3.11.9
 pyyaml
 numpy
 scipy
 mne
-PSID==1.1
 cmcrameri
 pyxdf
 polars
+pandas
+PSID
+DPAD

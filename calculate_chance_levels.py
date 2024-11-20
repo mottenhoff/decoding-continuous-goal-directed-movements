@@ -25,22 +25,20 @@ def calculate_chance_level_task_correlations(path, n_permutations):
     # TODO: main_path from env file
     print(f'Running task correlation: {path}', flush=True)
     
-    y, z = np.load(path/'0'/'y.npy'), np.load(path/'0'/'z.npy')
-    
+    y, z = np.load(path/'y.npy'), np.load(path/'z.npy')
+
     chance_levels = random_array_swap(y,
                                       z,
                                       permutation_metric,
                                       alpha=0.05,
                                       min_block_size=.1,
                                       repetitions=n_permutations)
-    outpath = path/'0'
-    outpath.mkdir(parents=True, exist_ok=True)
-    np.save(outpath/f'chance_levels_task_correlation_{n_permutations}.npy', chance_levels)
+    np.save(path/f'chance_levels_task_correlation_{n_permutations}.npy', chance_levels)
 
 def calculate_chance_level_prediction(path, n_permutations):
     print(f'Running prediction: {path}', flush=True)
     
-    zh = np.vstack([np.load(path/'0'/f'{i}'/'trajectories.npy') for i in range(N_FOLDS)])
+    zh = np.vstack([np.load(path/f'{i}'/'trajectories.npy') for i in range(N_FOLDS)])
     z = np.load(path/'0'/'z.npy')
     
     chance_levels = random_array_swap(z,
@@ -58,13 +56,12 @@ def main():
     run_parallel = False
 
     np.random.seed(2024)
-    n_permutations = 1000
+    n_permutations = 100
 
-    main_path = Path(f'finished_runs/')
+    main_path = Path(f'finished_runs_2/')
 
-    conditions = main_path.rglob('kh*')
+    conditions = main_path.rglob('sub-*')
     
-    # for path in main_path.glob('kh*'):
     if run_parallel:
         pool = Pool(processes=8)
         for path in conditions:
