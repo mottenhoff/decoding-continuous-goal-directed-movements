@@ -57,5 +57,5 @@ def main(datasets, savepath):
     figures.plot_dataset.plot_subsets(datasets, savepath)
     # for num, dataset in enumerate(datasets):
     #     figures.plot_dataset.plot_random_selection_per_trial(dataset, num, savepath) # Currently broken 
-    # plt.close('all')
+    plt.close('all')
     return

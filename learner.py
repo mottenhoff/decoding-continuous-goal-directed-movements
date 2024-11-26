@@ -176,11 +176,11 @@ def fit(datasets, save_path):
                 z_train_test, z_train_train = z_train[inner_fold, :], np.delete(z_train, inner_fold, axis=0)
                 
                 # Fit and score PSID
-                id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
+                # id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
 
-                # id_sys = DPAD.DPADModel()
-                # args = id_sys.prepare_args('DPAD_RTR2_Cz2HL128U_ErSV16')
-                # id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
+                id_sys = DPAD.DPADModel()
+                args = id_sys.prepare_args('DPAD_RTR2_Cz2HL128U_ErSV16')
+                id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
 
                 zh, yh, xh = id_sys.predict(y_train_test)
                 metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
@@ -196,9 +196,9 @@ def fit(datasets, save_path):
         i_best_params = np.argmax(best_scores.mean(axis=0))  # Selects best params on highest summed correlation
         best_params = grid_params[i_best_params]
         logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
-        
-        # Re-train PSID based on the inner-fold grid search
-        id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)
+    
+        nx, n1, _ = best_params
+        id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
         zh, yh, xh = id_sys.predict(y_test)
         metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
 
@@ -215,10 +215,6 @@ def fit(datasets, save_path):
 
         results[0, i_outer, :, :] = metrics
         cv_best_params[0, i_outer, :] = best_params
-
-    # Save overal information (results from best params)'
-    # id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
-
 
     np.save(save_path/'y.npy', y)
     np.save(save_path/'z.npy', z)

@@ -22,7 +22,7 @@ learn:
   save_path: ./results/
 
   psid:
-    i: [5, 10, 25, 50]      # Horizon
+    i: [5]      # Horizon: Doesnt matter for dpad
     n1: [3, 5, 10, 20, 30]  # Behaviorally relevant states
     nx: []                  # Behaviorally irrelevant states
 
