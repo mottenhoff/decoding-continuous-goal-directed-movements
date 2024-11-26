@@ -54,7 +54,7 @@ missing_values:
   min_windows_to_incl_set: 5
   xyz_samples_for_gaps: 4
 n_random_samples: 10
-parallel: 0
+parallel: 1
 plot: 0
 pos: 1
 random: 0
