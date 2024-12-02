@@ -18,6 +18,8 @@ data_cued_for_removal
 todo.md
 
 DPAD/
+dpad_runs/
+figure_output_backup
 
 bubble_paths.txt
 _archive/

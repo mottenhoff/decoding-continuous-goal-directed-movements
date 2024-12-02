@@ -125,7 +125,7 @@ def main():
 
     if c.parallel:
         
-        pool = Pool(processes=10) #cpu_count())
+        pool = Pool(processes=cpu_count())
         for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()
@@ -135,6 +135,7 @@ def main():
         for job in jobs:
             init_run(job, main_path)  # job = [Filename, ...]
             
+    print('')
 
 if __name__=='__main__':
     main()

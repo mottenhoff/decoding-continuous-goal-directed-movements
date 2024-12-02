@@ -5,15 +5,18 @@ from copy import deepcopy
 from pathlib import Path
 from itertools import product
 from os import cpu_count
+import gc
 
 import matplotlib.pyplot as plt
 import numpy as np
 import PSID
 import DPAD
 import yaml
+import tensorflow as tf
 from numpy.random import MT19937, RandomState, SeedSequence
 from PSID.evaluation import evalPrediction as eval_prediction
 from sklearn.linear_model import LinearRegression
+
 
 import libs.utils
 from libs import checks
@@ -24,12 +27,21 @@ from libs.feature_selection.top_correlated import select_top_correlated
 from figures import all_figures
 from figures import checks as fig_checks
 
+DPAD_SETTINGS = {
+    "min_cores_to_enable_paralellization": 28  # CPU cores?  # Only used in flexible inference.
+}
+DPAD_METHOD_CODE = 'DPAD_RTR2_Cz2HL128U_ErSV16'
+# DPAD_METHOD_CODE = 'DPAD_RTR2_Cz2HL128U_CzRGL2_L1e-1_ErSV16'
 
 CC = 0
 
 logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
 rs = RandomState(MT19937(SeedSequence(62277783366)))  # TODO: Make sure to use this random state correctly.
+
+
+
+
 
 def save(path, **kwargs):
     config = deepcopy(c)
@@ -116,6 +128,9 @@ def get_psid_params(n_states, relevant, horizons):
 
 def fit(datasets, save_path):
 
+    for device in tf.config.experimental.list_physical_devices('GPU'):
+        tf.config.experimental.set_memory_growth(device, True)
+
     # Select datasets
     target_kinematics = np.hstack([[0, 1, 2] if c.pos   else [],
                                    [3, 4, 5] if c.vel   else [],
@@ -141,7 +156,7 @@ def fit(datasets, save_path):
     outer_folds = np.array_split(np.arange(y.shape[0]), n_outer_folds)
 
     # Define the grid
-    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, [5]
+    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
     grid_params = list(get_psid_params(n_states, relevant, horizons))
     n_grid_params = len(grid_params)
 
@@ -152,6 +167,8 @@ def fit(datasets, save_path):
     # CV outer
     results =        np.empty((n_samples, n_outer_folds, n_metrics, n_z))
     cv_best_params = np.empty((n_samples, n_outer_folds, 3))     #  nx, n1, i
+
+    logger.info(f'Start training of {n_outer_folds * n_inner_folds * n_grid_params} models (total iterations)')
 
     for i_outer, outer_fold in enumerate(outer_folds):
         
@@ -166,9 +183,6 @@ def fit(datasets, save_path):
         inner_folds = np.array_split(np.arange(y_train.shape[0]), n_inner_folds)
         
         for i_grid, (nx, n1, i) in enumerate(grid_params):
-
-            if (nx < n1) or (n1 > i*n_z):
-                continue
         
             for i_inner, inner_fold in enumerate(inner_folds):
 
@@ -179,7 +193,7 @@ def fit(datasets, save_path):
                 # id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
 
                 id_sys = DPAD.DPADModel()
-                args = id_sys.prepare_args('DPAD_RTR2_Cz2HL128U_ErSV16')
+                args = id_sys.prepare_args(DPAD_METHOD_CODE)
                 id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
 
                 zh, yh, xh = id_sys.predict(y_train_test)
@@ -189,6 +203,14 @@ def fit(datasets, save_path):
 
                 inner_scores[i_inner, i_grid, :, :] = metrics
 
+                # Attempt to free up some RAM
+                tf.keras.backend.clear_session()
+                y_train_train, y_train_test = None, None
+                z_train_train, z_train_test = None, None
+                zh, yh, xh = None, None, None
+                id_sys = None
+                gc.collect()
+                
         logger.info(f'Fold: {i_outer} | Vcc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
 
         # Calculate best params (i.e. best n1 and best i)
@@ -197,8 +219,11 @@ def fit(datasets, save_path):
         best_params = grid_params[i_best_params]
         logger.info(f'Fold {i_outer} | summed CC: {best_scores.mean(axis=0)[i_best_params]:.2f} + {best_scores.std(axis=0)[i_best_params]:.2f} | Best params: n1={best_params[1]}, i={best_params[2]}')
     
+        # Retrain model
         nx, n1, _ = best_params
-        id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
+        id_sys = DPAD.DPADModel()
+        args = id_sys.prepare_args(DPAD_METHOD_CODE)
+        id_sys.fit(y_train.T, Z=z_train.T, nx=nx, n1=n1, epochs=2500, **args)
         zh, yh, xh = id_sys.predict(y_test)
         metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
 
@@ -207,7 +232,7 @@ def fit(datasets, save_path):
         path.mkdir(exist_ok=True)
         
         np.save(path/'z.npy',                 z_test)
-        np.save(path/'y.npy',                 y)
+        np.save(path/'y.npy',                 y_test)
         np.save(path/'trajectories.npy',      zh)
         np.save(path/'latent_states.npy',     yh)
         np.save(path/'selected_params.npy',   best_params)
@@ -215,6 +240,14 @@ def fit(datasets, save_path):
 
         results[0, i_outer, :, :] = metrics
         cv_best_params[0, i_outer, :] = best_params
+
+        # Attempt to free up some RAM
+        tf.keras.backend.clear_session()
+        y_train, y_test = None, None
+        z_train, z_test = None, None
+        zh, yh, xh = None, None, None
+        id_sys = None
+        gc.collect()
 
     np.save(save_path/'y.npy', y)
     np.save(save_path/'z.npy', z)
@@ -224,3 +257,4 @@ def fit(datasets, save_path):
 
     save(save_path)  # Can take kwargs, without it only saves config
 
+    print('done')

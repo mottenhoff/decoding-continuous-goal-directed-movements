@@ -1,5 +1,7 @@
+import sys
+sys.path.append(r'/home/maarten/main/resources/code/')
+
 from pathlib import Path
-from itertools import product
 
 from multiprocessing import Pool
 
@@ -11,8 +13,9 @@ from monte_carlo_simulations import random_array_swap
 KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a']
 N_FOLDS = 5
 
-AVG_BRAIN_PATH = Path(r'C:\Users\p70066129\Maarten\Resources\codebase\brainplots\models\cvs_avg35_inMNI152')
-PATH_SERVER = Path(r'L:/FHML_MHeNs\sEEG/')
+AVG_BRAIN_PATH = Path(r'../data/cvs_avg35_inMNI152')
+PATH_SERVER = Path(r'../data/')
+PATH_RESULTS = Path(r'./3_completed')
 
 def permutation_metric(original, permuted):
     n_original = original.shape[1]
@@ -56,9 +59,10 @@ def main():
     run_parallel = False
 
     np.random.seed(2024)
-    n_permutations = 100
+    n_permutations = 1000
 
-    main_path = Path(f'finished_runs_2/')
+    # main_path = Path(f'finished_runs_2/')
+    main_path = PATH_RESULTS
 
     conditions = main_path.rglob('sub-*')
     
@@ -66,7 +70,7 @@ def main():
         pool = Pool(processes=8)
         for path in conditions:
             pool.apply_async(calculate_chance_level_task_correlations, args=(path, n_permutations))
-            pool.apply_async(calculate_chance_level_prediction, args=(path, n_permutations))
+            # pool.apply_async(calculate_chance_level_prediction, args=(path, n_permutations))
         pool.close()
         pool.join()
 

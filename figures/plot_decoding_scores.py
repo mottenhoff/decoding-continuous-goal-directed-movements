@@ -68,12 +68,12 @@ def plot_overview(results, condition):
 
     
     scores = {ppt: values['scores'] for ppt, values in results.items()}
-    chance_levels = {ppt: values['chance_levels_prediction'] for ppt, values in results.items()}
+    chance_levels = {ppt: values['chance_levels_task_correlation'] for ppt, values in results.items()}
 
     # Guarantee order
     ppts = sorted(chance_levels.keys())
     scores = np.stack([scores[ppt] for ppt in ppts]).squeeze()
-    chance_levels = np.stack([chance_levels[ppt] for ppt in ppts])
+    chance_levels = np.vstack([chance_levels[ppt] for ppt in ppts])
 
     xticks = np.arange(len(ppts))
     colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppts))]
@@ -112,7 +112,7 @@ def plot_overview(results, condition):
         axs[0, i].set_title(col_titles[i], fontsize='xx-large')
 
         axs[-1, i].set_xticks(np.arange(scores.shape[0]))
-        axs[-1, i].set_xticklabels([ppt_map[ppt.split('_')[0]].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
+        axs[-1, i].set_xticklabels([ppt.capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
 
 
 

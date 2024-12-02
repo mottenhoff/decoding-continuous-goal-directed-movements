@@ -1,3 +1,6 @@
+import sys
+sys.path.append(r'/home/maarten/main/resources/code/')
+
 from pathlib import Path
 from multiprocessing import Pool
 

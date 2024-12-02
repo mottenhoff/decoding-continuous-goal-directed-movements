@@ -1,3 +1,6 @@
+import sys
+sys.path.append(r'~/main/resources/code/')
+
 import pickle
 from pathlib import Path
 from random import random

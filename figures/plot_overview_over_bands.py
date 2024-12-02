@@ -77,7 +77,7 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
     return ax
 
 def stack_scores(data, key=None):
-    stack_ppt_scores = lambda ppts: np.stack([values['scores' if not key else key] for values in ppts.values()])
+    stack_ppt_scores = lambda ppts: np.vstack([values['scores' if not key else key] for values in ppts.values()])
     return np.stack([stack_ppt_scores(ppts) for freq, ppts in data.items()], axis=0)
 
 def plot_freqs_vs_states(scores):
@@ -194,7 +194,7 @@ def plot(results, name):
     # results = [(best_paths, scores), ...]  delta, ab, bbhg
     # Gather the data
     scores =        stack_scores(results).squeeze()
-    chance_levels = stack_scores(results, 'chance_levels_prediction')
+    chance_levels = stack_scores(results, 'chance_levels_task_correlation')
 
     ### Plot it
     # _, _ = plot_freqs_vs_states(scores)

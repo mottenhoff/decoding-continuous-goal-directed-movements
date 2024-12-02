@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import sys
+sys.path.append(r'/home/maarten/main/resources/code/')
 # from figures import figure_3d_correlation_and_reconstruction
 # from figures import figure_1d_score_overview
 # from figures import figure_6d_score_overview
@@ -23,32 +25,34 @@ from figures import plot_task_correlations
 
 
 if __name__=='__main__':
-    path_data = Path(r'..\..\..\resources\data\bubbles-psid-2024')
+    path_data = Path(r'../data')
 
     all_paths = [
-        Path(r'finished_runs\delta_cer'),
+        Path(r'finished_runs/delta_cer'),
         Path(r'finished_runs/alphabeta_cer'),
-        Path(r'finished_runs\bbhg_cer'),
-        Path(r'finished_runs\delta_lap'),
+        Path(r'finished_runs/bbhg_cer'),
+        Path(r'finished_runs/delta_lap'),
         Path(r'finished_runs/alphabeta_lap'),
-        Path(r'finished_runs\bbhg_lap'),
-        Path(r'finished_runs\delta_cer_tv'),
+        Path(r'finished_runs/bbhg_lap'),
+        Path(r'finished_runs/delta_cer_tv'),
         Path(r'finished_runs/alphabeta_cer_tv'),
-        Path(r'finished_runs\bbhg_cer_tv')
+        Path(r'finished_runs/bbhg_cer_tv')
         ] 
 
+    # all_paths = [
+    #     Path(r'finished_runs_2\delta_cer'),
+    #     Path(r'finished_runs_2/alphabeta_cer'),
+    #     Path(r'finished_runs_2\bbhg_cer'),
+    #     Path(r'finished_runs_2\delta_lap'),
+    #     Path(r'finished_runs_2/alphabeta_lap'),
+    #     Path(r'finished_runs_2\bbhg_lap'),
+    #     Path(r'finished_runs_2\delta_cer_tv'),
+    #     Path(r'finished_runs_2/alphabeta_cer_tv'),
+    #     Path(r'finished_runs_2\bbhg_cer_tv')
+    #     ] 
     all_paths = [
-        Path(r'finished_runs_2\delta_cer'),
-        Path(r'finished_runs_2/alphabeta_cer'),
-        Path(r'finished_runs_2\bbhg_cer'),
-        Path(r'finished_runs_2\delta_lap'),
-        Path(r'finished_runs_2/alphabeta_lap'),
-        Path(r'finished_runs_2\bbhg_lap'),
-        Path(r'finished_runs_2\delta_cer_tv'),
-        Path(r'finished_runs_2/alphabeta_cer_tv'),
-        Path(r'finished_runs_2\bbhg_cer_tv')
-        ] 
-
+        Path(r'./3_completed/delta_cer/')
+    ]
 
 # results\full-run-2\sub-01\behavior_per_trial_0.pkl
     # plot_3d_brains_significance.main()
@@ -62,8 +66,8 @@ if __name__=='__main__':
     # Aggregated decoding performance per kinematic
     for opt in [
         'cer', 
-        'lap', 
-        'cer_tv'
+        # 'lap', 
+        # 'cer_tv'
         ]:
         
         run_results  = {key: value for key, value in results.items() 
