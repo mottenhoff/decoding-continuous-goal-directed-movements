@@ -63,7 +63,7 @@ rereferencing:
   laplacian: 0
 save: 1
 speed: 1
-target_vector: 1
+target_vector: 0
 timeshift: 0
 vel: 1
 window:
