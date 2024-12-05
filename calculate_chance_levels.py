@@ -1,3 +1,4 @@
+from os import cpu_count
 import sys
 sys.path.append(r'/home/maarten/main/resources/code/')
 
@@ -15,7 +16,8 @@ N_FOLDS = 5
 
 AVG_BRAIN_PATH = Path(r'../data/cvs_avg35_inMNI152')
 PATH_SERVER = Path(r'../data/')
-PATH_RESULTS = Path(r'./3_completed')
+PATH_RESULTS = Path(r'./results_dpad')
+PATH_RESULTS = Path(r'./results_psid')
 
 def permutation_metric(original, permuted):
     n_original = original.shape[1]
@@ -56,7 +58,7 @@ def calculate_chance_level_prediction(path, n_permutations):
     np.save(outpath/f'chance_levels_prediction_{n_permutations}.npy', chance_levels)
 
 def main():
-    run_parallel = False
+    run_parallel = True
 
     np.random.seed(2024)
     n_permutations = 1000
@@ -67,7 +69,7 @@ def main():
     conditions = main_path.rglob('sub-*')
     
     if run_parallel:
-        pool = Pool(processes=8)
+        pool = Pool(processes=cpu_count())
         for path in conditions:
             pool.apply_async(calculate_chance_level_task_correlations, args=(path, n_permutations))
             # pool.apply_async(calculate_chance_level_prediction, args=(path, n_permutations))

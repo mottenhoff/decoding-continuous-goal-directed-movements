@@ -145,7 +145,7 @@ def plot_scores_per_state(scores):
 
     return scores_per_state[0].argmax(), scores_per_state[0].max()
 
-def plot_mean_performance(scores, chance_levels, name):
+def plot_mean_performance(scores, chance_levels, name, savepath):
 
     jitter = lambda n: (np.arange(n) - n/2) + 0.5
 
@@ -185,12 +185,12 @@ def plot_mean_performance(scores, chance_levels, name):
 
     fig.legend(frameon=False) #, fontsize='x-large')
 
-    fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}.png')
-    fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}_.svg')
+    fig.savefig(savepath/f'mean_performance_per_band_per_kinematic{"_"+name}.png')
+    fig.savefig(savepath/f'mean_performance_per_band_per_kinematic{"_"+name}_.svg')
 
     return
 
-def plot(results, name):
+def plot(results, name, savepath):
     # results = [(best_paths, scores), ...]  delta, ab, bbhg
     # Gather the data
     scores =        stack_scores(results).squeeze()
@@ -202,6 +202,6 @@ def plot(results, name):
     # best_state_i, best_state = plot_scores_per_state(scores)
 
 
-    plot_mean_performance(scores, chance_levels, name)
+    plot_mean_performance(scores, chance_levels, name, savepath)
 
     return

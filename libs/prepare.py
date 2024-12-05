@@ -198,7 +198,7 @@ def go(ds, save_path, ds_idx):
     
     # import matplotlib.pyplot as plt
 
-    # ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
+    ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
     # ds.eeg.channels = np.concatenate([list(map(lambda x: x + f'-{band}', ds.eeg.channels)) for band in ['delta', 'alphabeta', 'bbhg']])  # Uncomment if problems later
 
     # Align xyz to higher samples eeg

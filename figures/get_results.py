@@ -61,13 +61,12 @@ def get_results(path_main, path_data, skip=False):
         # chance_levels_prediction = load_chance_levels(run, 'prediction')
         chance_levels_task = load_chance_levels(run, 'task_correlation')
 
-        results.update({'_'.join(run.parts[-2:]): {'scores': result,
-                                                   'params': params,
-                                                   'paths': run,
-                                                #    'chance_levels_prediction': chance_levels_prediction,
-                                                   'chance_levels_task_correlation': chance_levels_task,
-                                                   'datasize': run_info['datasize'],
-                                                   'n_targets': run_info['n_targets']}})
-
+        results.update({ppt_id: {'scores': result,
+                                 'params': params,
+                                 'paths': run,
+                            #    'chance_levels_prediction': chance_levels_prediction,
+                                 'chance_levels_task_correlation': chance_levels_task,
+                                 'datasize': run_info['datasize'],
+                                 'n_targets': run_info['n_targets']}})
 
     return results

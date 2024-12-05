@@ -58,7 +58,7 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
                         **{'label': 'chance level'} if label and ci==0 else {})
     return ax
 
-def plot_overview(results, condition):
+def plot_overview(results, condition, savepath):
 
     # Set some values
     col_titles = ['X', 'Y', 'Z', r'$\sum$']
@@ -114,14 +114,12 @@ def plot_overview(results, condition):
         axs[-1, i].set_xticks(np.arange(scores.shape[0]))
         axs[-1, i].set_xticklabels([ppt.capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
 
-
-
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
     
     # plt.show()
 
-    fig.savefig(f'figure_output/decoder_scores_{condition}.png')
-    fig.savefig(f'figure_output/decoder_scores_{condition}.svg')
+    fig.savefig(savepath/f'decoder_scores_{condition}.png')
+    fig.savefig(savepath/f'decoder_scores_{condition}.svg')
 
     plt.close('all')

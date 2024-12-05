@@ -95,7 +95,7 @@ def plot_medium_times(ax, ppt_times):
     ax.set_xticks([])
     ax.set_ylabel('Median time to target')
 
-def plot_average_time_to_target(path):
+def plot_average_time_to_target(path, savepath):
 
     ppt_times = {path.parents[1].stem: np.load(path) 
                 for path in path.rglob('time_between_targets.npy')}
@@ -112,11 +112,11 @@ def plot_average_time_to_target(path):
 
     fig.suptitle('Time to target')
     fig.tight_layout()
-    fig.savefig('./figure_output/time_to_target.png')
-    fig.savefig('./figure_output/time_to_target.svg')
+    fig.savefig(savepath/'time_to_target.png')
+    fig.savefig(savepath/'time_to_target.svg')
 
 
-def plot_average_trajectory(main_path):
+def plot_average_trajectory(main_path, savepath):
     # pos, speed, force = [9, 10, 11]
 
     paths = list(main_path.rglob('behavior_per_trial*'))
@@ -159,14 +159,14 @@ def plot_average_trajectory(main_path):
             ax.spines[['top', 'left', 'right']].set_visible(False)
  
         fig.tight_layout()
-        outpath = Path(r'figure_output/trial_trajectories/')
+        outpath = Path(savepath/'trial_trajectories/')
         outpath.mkdir(exist_ok=True, parents=True)
         fig.savefig(outpath/f'trials_{ppt_id}_1.png')
         fig.savefig(outpath/f'trials_{ppt_id}_1.svg')
 
     return
  
-def plot_speed_curve(main_path):
+def plot_speed_curve(main_path, savepath):
     # pos, speed, force = [9, 10, 11]
 
     paths = list(main_path.rglob('behavior_per_trial*'))

@@ -17,6 +17,7 @@ from figures import latent_state_comparisons
 from figures import plot_dataset_metrics
 from figures import get_results as gr
 from figures import plot_task_correlations
+from figures import plot_dpad_vs_psid
 
 # from figures import plot_3d_brains_significance
 
@@ -26,81 +27,72 @@ from figures import plot_task_correlations
 
 if __name__=='__main__':
     path_data = Path(r'../data')
+    path_results_dpad = Path(r'./results_dpad')
+    path_results_psid = Path(r'./results_psid')
+    path_results_psid = Path(r'./finished_runs')
+
+    path_results = path_results_dpad
+
+    savepath = Path('figures_'+path_results.name.split('_')[-1])
+    savepath.mkdir(parents=True, exist_ok=True)
 
     all_paths = [
-        Path(r'finished_runs/delta_cer'),
-        Path(r'finished_runs/alphabeta_cer'),
-        Path(r'finished_runs/bbhg_cer'),
-        Path(r'finished_runs/delta_lap'),
-        Path(r'finished_runs/alphabeta_lap'),
-        Path(r'finished_runs/bbhg_lap'),
-        Path(r'finished_runs/delta_cer_tv'),
-        Path(r'finished_runs/alphabeta_cer_tv'),
-        Path(r'finished_runs/bbhg_cer_tv')
+        path_results/'delta_cer',
+        path_results/'bbhg_cer',
+        path_results/'alphabeta_cer',
+        # path_results/'delta_lap',
+        # path_results/'alphabeta_lap',
+        # path_results/'bbhg_lap',
+        # path_results/'delta_cer_tv',
+        # path_results/'alphabeta_cer_tv',
+        # path_results/'bbhg_cer_tv'
         ] 
 
-    # all_paths = [
-    #     Path(r'finished_runs_2\delta_cer'),
-    #     Path(r'finished_runs_2/alphabeta_cer'),
-    #     Path(r'finished_runs_2\bbhg_cer'),
-    #     Path(r'finished_runs_2\delta_lap'),
-    #     Path(r'finished_runs_2/alphabeta_lap'),
-    #     Path(r'finished_runs_2\bbhg_lap'),
-    #     Path(r'finished_runs_2\delta_cer_tv'),
-    #     Path(r'finished_runs_2/alphabeta_cer_tv'),
-    #     Path(r'finished_runs_2\bbhg_cer_tv')
-    #     ] 
-    all_paths = [
-        Path(r'./3_completed/delta_cer/')
-    ]
-
-# results\full-run-2\sub-01\behavior_per_trial_0.pkl
     # plot_3d_brains_significance.main()
 
     results = {path.stem: gr.get_results(path, path_data) for path in all_paths}
 
-    # # Individual decoding scores per kinematic
-    for condition, result in results.items():
-        plot_decoding_scores.plot_overview(result, condition)
+    # # # Individual decoding scores per kinematic
+    # for condition, result in results.items():
+    #     plot_decoding_scores.plot_overview(result, condition, savepath)
 
-    # Aggregated decoding performance per kinematic
-    for opt in [
-        'cer', 
-        # 'lap', 
-        # 'cer_tv'
-        ]:
+    # # Aggregated decoding performance per kinematic
+    # for opt in [
+    #     'cer', 
+    #     # 'lap', 
+    #     # 'cer_tv'
+    #     ]:
         
-        run_results  = {key: value for key, value in results.items() 
-                        if key in [f'delta_{opt}', 
-                                   f'alphabeta_{opt}',
-                                   f'bbhg_{opt}']}
+    #     run_results  = {key: value for key, value in results.items() 
+    #                     if key in [f'delta_{opt}', 
+    #                                f'alphabeta_{opt}',
+    #                                f'bbhg_{opt}']}
 
-        plot_overview_over_bands.plot(run_results, name=opt)
+    #     plot_overview_over_bands.plot(run_results, name=opt, savepath=savepath)
 
-    plot_task_correlations.main()
+    # plot_task_correlations.main(path_results, savepath)
 
-    plot_dataset_metrics.plot_average_time_to_target(all_paths[0])  # Only first condition because behavior is the same.
-    plot_dataset_metrics.plot_speed_curve(all_paths[0])  # Only first condition because behavior is the same.
-    plot_dataset_metrics.plot_average_trajectory(all_paths[0])  ## Throws error
-    # print()
-    
-    # TODO: Reconstruction plot as example of performance.
+    # plot_dataset_metrics.plot_average_time_to_target(all_paths[0], savepath)  # Only first condition because behavior is the same.
+    # # plot_dataset_metrics.plot_speed_curve(all_paths[0], savepath)  # Only first condition because behavior is the same.
+    # plot_dataset_metrics.plot_average_trajectory(all_paths[0], savepath)  ## Throws error
+
+    psid_paths = [
+        path_results_psid/'delta_cer',
+        path_results_psid/'bbhg_cer',
+        path_results_psid/'alphabeta_cer',
+        # path_results/'delta_lap',
+        # path_results/'alphabeta_lap',
+        # path_results/'bbhg_lap',
+        # path_results/'delta_cer_tv',
+        # path_results/'alphabeta_cer_tv',
+        # path_results/'bbhg_cer_tv'
+        ] 
 
 
+    results_dpad = results
+    results_psid = {path.stem: gr.get_results(path, path_data) for path in psid_paths}
 
+    condition='delta_cer'
+    plot_dpad_vs_psid.plot(results_dpad[condition], results_psid[condition])
 
-
-    # gaps_vs_performance.plot_relationship(results)  # currently doesnt work
-
-
-    # Reconstruction
-    # plot_reconstruction_overview.make(path)
-        # summarize.main(Path('./results/combined'))
-    # Brain correlations
-    # Brain combined plot
-
-    # NICE TO HAVE
-    # Latent state comparison
-        # latent_state_comparisons.main(best_paths)
-
-    
+    print()

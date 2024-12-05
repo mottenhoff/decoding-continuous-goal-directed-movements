@@ -158,7 +158,7 @@ def task_correlations_per_channel(df, chance_level, outpath,
     fig.savefig(outpath/'task_correlations_per_location.png')
     fig.savefig(outpath/'task_correlations_per_location.svg')
 
-def plot_condition(path):
+def plot_condition(path, savepath):
 
     condition_name = path.name
     for kinematic_idx, kinematic_name in enumerate(KINEMATICS):
@@ -174,7 +174,7 @@ def plot_condition(path):
                                 'anatomical_location': str,
                                 'correlations': float})
 
-        outpath = Path(f'figure_output/channel_correlations/{condition_name}/{kinematic_name}')
+        outpath = Path(savepath/f'channel_correlations/{condition_name}/{kinematic_name}')
         outpath.mkdir(exist_ok=True, parents=True)
 
         for path_ppt in path.glob('kh*'):
@@ -195,24 +195,22 @@ def plot_condition(path):
                                       only_significant_channels=True)
         plt.close('all')
 
-def main():
+def main(path_results, savepath):
 
     run_parallel = 0
-
-    main_path = Path(f'finished_runs/')
     
-    conditions = main_path.glob('*')
+    conditions = path_results.glob('*')
 
     if run_parallel:
         pool = Pool(processes=8)
         for path in conditions:
-            pool.apply_async(plot_condition, args=(path))
+            pool.apply_async(plot_condition, args=(path, savepath))
         pool.close()
         pool.join()
 
     else:
         for path in conditions:
-            plot_condition(path)
+            plot_condition(path, savepath)
 
 if __name__=='__main__':
-    main()
+    main('./finished_runs/', './figure_output')
