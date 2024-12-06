@@ -63,8 +63,9 @@ def main():
     np.random.seed(2024)
     n_permutations = 1000
 
-    # main_path = Path(f'finished_runs_2/')
-    main_path = PATH_RESULTS
+    main_path = Path(f'results_psid')
+    main_path = Path(f'results_dpad')
+    # main_path = PATH_RESULTS
 
     conditions = main_path.rglob('sub-*')
     

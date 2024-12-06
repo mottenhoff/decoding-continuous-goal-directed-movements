@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import sys
+import matplotlib.pyplot as plt
+
 sys.path.append(r'/home/maarten/main/resources/code/')
 # from figures import figure_3d_correlation_and_reconstruction
 # from figures import figure_1d_score_overview
@@ -29,7 +31,7 @@ if __name__=='__main__':
     path_data = Path(r'../data')
     path_results_dpad = Path(r'./results_dpad')
     path_results_psid = Path(r'./results_psid')
-    path_results_psid = Path(r'./finished_runs')
+    # path_results_psid = Path(r'./finished_runs')
 
     path_results = path_results_dpad
 
@@ -78,8 +80,8 @@ if __name__=='__main__':
 
     psid_paths = [
         path_results_psid/'delta_cer',
-        path_results_psid/'bbhg_cer',
         path_results_psid/'alphabeta_cer',
+        path_results_psid/'bbhg_cer',
         # path_results/'delta_lap',
         # path_results/'alphabeta_lap',
         # path_results/'bbhg_lap',
@@ -92,7 +94,11 @@ if __name__=='__main__':
     results_dpad = results
     results_psid = {path.stem: gr.get_results(path, path_data) for path in psid_paths}
 
-    condition='delta_cer'
-    plot_dpad_vs_psid.plot(results_dpad[condition], results_psid[condition])
+    fig, axs= plt.subplots(nrows=1, ncols=3, figsize=(24, 8))
+    for i, condition in enumerate(['delta_cer', 'alphabeta_cer', 'bbhg_cer']):
+        axs[i] = plot_dpad_vs_psid.plot(results_dpad[condition], results_psid[condition], ax=axs[i])
+        axs[i].set_title(condition.split('_')[0].capitalize(), fontsize='xx-large')
+        axs[i].set_aspect('equal', 'box')
 
-    print()
+    axs[-1].legend(bbox_to_anchor=(1.1, 1))
+    plt.show(block=True)
