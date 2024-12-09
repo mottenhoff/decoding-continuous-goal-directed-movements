@@ -63,12 +63,13 @@ def main():
     np.random.seed(2024)
     n_permutations = 1000
 
-    main_path = Path(f'results_psid')
+    # main_path = Path(f'results_psid')
     main_path = Path(f'results_dpad')
     # main_path = PATH_RESULTS
 
-    conditions = main_path.rglob('sub-*')
-    
+    conditions = main_path.rglob('sub-*')   
+    conditions = [c for c in conditions if 'raw_cer' not in str(c)]
+
     if run_parallel:
         pool = Pool(processes=cpu_count())
         for path in conditions:

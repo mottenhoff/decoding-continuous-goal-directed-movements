@@ -39,6 +39,7 @@ if __name__=='__main__':
     savepath.mkdir(parents=True, exist_ok=True)
 
     all_paths = [
+        path_results/'raw_cer',
         path_results/'delta_cer',
         path_results/'bbhg_cer',
         path_results/'alphabeta_cer',
@@ -54,23 +55,23 @@ if __name__=='__main__':
 
     results = {path.stem: gr.get_results(path, path_data) for path in all_paths}
 
-    # # # Individual decoding scores per kinematic
-    # for condition, result in results.items():
-    #     plot_decoding_scores.plot_overview(result, condition, savepath)
+    # # # # Individual decoding scores per kinematic
+    for condition, result in results.items():
+        plot_decoding_scores.plot_overview(result, condition, savepath)
 
     # # Aggregated decoding performance per kinematic
-    # for opt in [
-    #     'cer', 
-    #     # 'lap', 
-    #     # 'cer_tv'
-    #     ]:
+    for opt in [
+        'cer', 
+        # 'lap', 
+        # 'cer_tv'
+        ]:
         
-    #     run_results  = {key: value for key, value in results.items() 
-    #                     if key in [f'delta_{opt}', 
-    #                                f'alphabeta_{opt}',
-    #                                f'bbhg_{opt}']}
+        run_results  = {key: value for key, value in results.items() 
+                        if key in [f'delta_{opt}', 
+                                   f'alphabeta_{opt}',
+                                   f'bbhg_{opt}']}
 
-    #     plot_overview_over_bands.plot(run_results, name=opt, savepath=savepath)
+        plot_overview_over_bands.plot(run_results, name=opt, savepath=savepath)
 
     # plot_task_correlations.main(path_results, savepath)
 
@@ -79,6 +80,7 @@ if __name__=='__main__':
     # plot_dataset_metrics.plot_average_trajectory(all_paths[0], savepath)  ## Throws error
 
     psid_paths = [
+        path_results_psid/'raw_cer',
         path_results_psid/'delta_cer',
         path_results_psid/'alphabeta_cer',
         path_results_psid/'bbhg_cer',
@@ -94,8 +96,8 @@ if __name__=='__main__':
     results_dpad = results
     results_psid = {path.stem: gr.get_results(path, path_data) for path in psid_paths}
 
-    fig, axs= plt.subplots(nrows=1, ncols=3, figsize=(24, 8))
-    for i, condition in enumerate(['delta_cer', 'alphabeta_cer', 'bbhg_cer']):
+    fig, axs= plt.subplots(nrows=1, ncols=4, figsize=(24, 8))
+    for i, condition in enumerate(['raw_cer', 'delta_cer', 'alphabeta_cer', 'bbhg_cer']):
         axs[i] = plot_dpad_vs_psid.plot(results_dpad[condition], results_psid[condition], ax=axs[i])
         axs[i].set_title(condition.split('_')[0].capitalize(), fontsize='xx-large')
         axs[i].set_aspect('equal', 'box')
