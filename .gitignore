@@ -20,6 +20,8 @@ todo.md
 DPAD/
 dpad_runs/
 figure_output_backup
+results_dpad/
+results_psid/
 
 bubble_paths.txt
 _archive/
