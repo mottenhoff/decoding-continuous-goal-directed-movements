@@ -26,15 +26,15 @@ if __name__=='__main__':
     path_data = Path(r'../data/')
 
     all_paths =[
-        # Path(r'finished_runs/delta_cer'),
-        # Path(r'finished_runs/alphabeta_cer'),
-        # Path(r'finished_runs/bbhg_cer'),
-        # Path(r'finished_runs/delta_lap'),
-        # Path(r'finished_runs/alphabeta_lap'),
+        Path(r'finished_runs/delta_cer'),
+        Path(r'finished_runs/alphabeta_cer'),
+        Path(r'finished_runs/bbhg_cer'),
+        Path(r'finished_runs/delta_lap'),
+        Path(r'finished_runs/alphabeta_lap'),
         Path(r'finished_runs/bbhg_lap'),
-        # Path(r'finished_runs/delta_cer_tv'),
-        # Path(r'finished_runs/alphabeta_cer_tv'),
-        # Path(r'finished_runs/bbhg_cer_tv')
+        Path(r'finished_runs/delta_cer_tv'),
+        Path(r'finished_runs/alphabeta_cer_tv'),
+        Path(r'finished_runs/bbhg_cer_tv')
         ]
 
     # from figures import plot_3d_brains_significance
