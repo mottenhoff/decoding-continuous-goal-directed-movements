@@ -45,7 +45,7 @@ def main():
     run_parallel = False
 
     np.random.seed(2024)
-    n_permutations = 100
+    n_permutations = 1000
 
     main_path = Path(f'finished_runs')
 
