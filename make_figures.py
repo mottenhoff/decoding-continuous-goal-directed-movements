@@ -10,6 +10,7 @@ if __name__=='__main__':
 
     path_data = Path(r'../data/')
 
+    # Path to your results
     all_paths =[
         Path(r'finished_runs/delta_cer'),
         Path(r'finished_runs/alphabeta_cer'),
