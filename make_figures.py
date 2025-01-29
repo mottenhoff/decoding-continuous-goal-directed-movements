@@ -13,15 +13,8 @@ if __name__=='__main__':
     # Path to your results
     all_paths =[
         Path(r'finished_runs/delta_cer'),
-        Path(r'finished_runs/alphabeta_cer'),
-        Path(r'finished_runs/bbhg_cer'),
-        Path(r'finished_runs/delta_lap'),
-        Path(r'finished_runs/alphabeta_lap'),
-        Path(r'finished_runs/bbhg_lap'),
-        Path(r'finished_runs/delta_cer_tv'),
-        Path(r'finished_runs/alphabeta_cer_tv'),
-        Path(r'finished_runs/bbhg_cer_tv')
-        ]
+        # Other paths here
+       ]
 
     results = {path.stem: gr.get_results(path, path_data) for path in all_paths}
 

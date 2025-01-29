@@ -19,7 +19,7 @@ Python version used: `3.11.9`
 
 **Decoder**:
 1. Set path to the data in `main.py`\
-2. The script can run with multiple options (e.g. different frequency bands, or including a target vector). These are set in the configs in  `configs/`. To run a config, for example delta activity with a common electrode reference: `python ./configs/delta_cer.yml`. If no config is supplied, `main.py` will default to `./config.yml`, which the config file ran most recently. `main.py` will run each analysis of each participant in parallel in separate processes unless the `parallel` option is set to 0 in the config. The results for each process will be saved in a separate directory in `./results/<datetime>`. You may want to move and rename the result directories, for example: `./finished_runs/delta_cer`.
+2. The script can run with multiple options (e.g. different frequency bands, or including a target vector). These are set in the configs in  `configs/`. To run a config, for example delta activity with a common electrode reference: `python main.py ./configs/delta_cer.yml`. If no config is supplied, `main.py` will default to `./config.yml`, which the config file ran most recently. `main.py` will run each analysis of each participant in parallel in separate processes unless the `parallel` option is set to 0 in the config. The results for each process will be saved in a separate directory in `./results/<datetime>`. You may want to move and rename the result directories, for example: `./finished_runs/delta_cer`.
 
 **Figures**:
 To create the main figures in the paper:
