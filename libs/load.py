@@ -1,21 +1,16 @@
 import logging
 import csv
-
 from bisect import bisect_right
 from pathlib import Path
 from dataclasses import dataclass, fields
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from libs.read_xdf import read_xdf
 from libs import plotting
 from libs import utils
-from libs import kinematics
 from libs import debug
 from libs.target_vector import get_target_vector
-from figures.checks import plot_events
-
 
 logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
@@ -54,10 +49,6 @@ class Events:
     cursor_reset_end: np.array
     on_target: np.array
     off_target: np.array
-    # skip: np.array
-
-    # def __repr__(self):
-    #     return '\n'.join([f'{field}={field.shape}'for field in fields(self)])
 
 def load_locations(path):
     if not path.exists():
@@ -120,15 +111,12 @@ def parse_markers(markers, ts):
         elif 'experiment_finished' in m:
             exp_end_idx = i
     
-
     for i, (t, m) in enumerate(zip(     ts[exp_start_idx+1:exp_end_idx], 
                                    markers[exp_start_idx+1:exp_end_idx])):
         event = m[0].split(';')
         
-        # TODO: check for exp start
         if event[0] == 'skip':
             # Has to be on top, because skip event is len==0
-            # TODO. (make another test session)
             pass
 
         elif event[1] == 'new_target':  # [skip]  [skip]
@@ -158,7 +146,6 @@ def parse_markers(markers, ts):
             xyz = np.array(str_to_list(event[-1])).astype(float)
             events['c_reset_end'] = np.vstack([events['c_reset_start'],
                                                 np.hstack([t, float(event[0]), xyz])])
-
 
     events = Events(events['t_new'], events['t_reached'],
                     events['c_reset_start'], events['c_reset_end'],
@@ -218,7 +205,6 @@ def get_trials(leap, events):
         t_start_idc = fix_too_many_trial_starts(t_start_idc, t_end_idc)
     
     # Align with leap
-    # trial_nums = np.zeros(leap['ts'].shape[0])
     for i, (s, e) in enumerate(zip(t_start_idc, t_end_idc)):
         trial_nums[s:e] = i
 
@@ -236,7 +222,6 @@ def get_trials(leap, events):
     
     targets = get_target_per_sample(trial_nums, events.target_reached)
     trials = np.hstack((np.expand_dims(trial_nums, axis=1), targets))
-
 
     if np.isnan(trials[0][0]):
         # Occasionally, the values are filled from the second
@@ -272,24 +257,6 @@ def align(leap, events):
         setattr(events, field.name, data)
 
     return events, trials
-
-# def align_matrices_with_diff_fs(l, ts_l, s, ts_s):
-#     '''
-#     l = larger matrix
-#     s = smaller matrix
-
-#     ts = timestamps
-#     idc = align indices where values of s should be inserted in l
-#     '''
-#     s = s[:, np.newaxis] if s.ndim == 1 else s
-
-#     s_ext = np.full((l.shape[0], s.shape[1]), np.nan)
-
-#     idc = np.array([locate_pos(ts_l, nt) for nt in ts_s])
-#     s_ext[idc, :] = s
-
-#     return s_ext, idc
-#     # return np.hstack((l, s_ext)), idc
 
 def leap_to_bubble_space(xyz, fn_t):
     '''
@@ -334,28 +301,14 @@ def load_dataset(path, ppt_id):
 
     target_vector = get_target_vector(trials, xyz) # if c.target_vector else np.array([])
 
-    # xyz, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
-    #                                        xyz, xyz_ts)
-    # trials, _ = align_matrices_with_diff_fs(eeg['data'], eeg['ts'],
-    #                                           trials, xyz_ts)
-
     eeg['channel_mapping'] = load_locations(path.parent/'electrode_locations.csv')
 
     eeg = Eeg(eeg['data'], eeg['ts'], eeg['fs'], 
               float(eeg['total_stream_time']), eeg['channel_names'], eeg['channel_mapping'])
-
 
     if c.debug.active and c.debug.short:
         debug.shorten_dataset(eeg, xyz)
 
     dataset = Dataset(ppt_id, eeg, xyz, xyz_ts, trials, events, target_vector)
 
-    # plot_events(dataset)
-
     return dataset
-
-
-if __name__=='__main__':
-    data_path = Path('./data/kh036/')
-    filename = f'bubbles_{1}.xdf'
-    go(data_path/filename)

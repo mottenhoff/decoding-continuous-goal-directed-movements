@@ -1,35 +1,25 @@
-import datetime as dt
 import logging
-import pickle
 from copy import deepcopy
-from pathlib import Path
 from itertools import product
-from os import cpu_count
 
 import matplotlib.pyplot as plt
 import numpy as np
 import PSID
-import DPAD
 import yaml
 from numpy.random import MT19937, RandomState, SeedSequence
 from PSID.evaluation import evalPrediction as eval_prediction
-from sklearn.linear_model import LinearRegression
 
 import libs.utils
-from libs import checks
 from libs.explore import task_correlations
 from libs.feature_selection.forward_feature_selection import forward_feature_selection
 from libs.feature_selection.kbest import select_k_best
 from libs.feature_selection.top_correlated import select_top_correlated
-from figures import all_figures
-from figures import checks as fig_checks
-
 
 CC = 0
 
 logger = logging.getLogger(__name__)
 c = libs.utils.load_yaml('./config.yml')
-rs = RandomState(MT19937(SeedSequence(62277783366)))  # TODO: Make sure to use this random state correctly.
+rs = RandomState(MT19937(SeedSequence(62277783366)))
 
 def save(path, **kwargs):
     config = deepcopy(c)
@@ -178,12 +168,8 @@ def fit(datasets, save_path):
                 # Fit and score PSID
                 id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
 
-                # id_sys = DPAD.DPADModel()
-                # args = id_sys.prepare_args('DPAD_RTR2_Cz2HL128U_ErSV16')
-                # id_sys.fit(y_train_train.T, Z=z_train_train.T, nx=nx, n1=n1, epochs=2500, **args)
-
                 zh, yh, xh = id_sys.predict(y_train_test)
-                metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])   # returns metrics x kinematics (=n_z)
+                metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])  # returns metrics x kinematics (=n_z)
 
                 logger.info(f'Fold: {i_outer}-{i_inner} | Vcc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
 
@@ -215,10 +201,6 @@ def fit(datasets, save_path):
 
         results[0, i_outer, :, :] = metrics
         cv_best_params[0, i_outer, :] = best_params
-
-    # Save overal information (results from best params)'
-    # id_sys = PSID.PSID(y, z, *best_params, zscore_Y=True, zscore_Z=True)  # TODO: This selects the params of the last fold
-
 
     np.save(save_path/'y.npy', y)
     np.save(save_path/'z.npy', z)

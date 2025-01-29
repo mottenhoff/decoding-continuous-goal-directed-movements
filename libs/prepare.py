@@ -5,16 +5,12 @@ import pickle
 from bisect import bisect_right
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 import libs.utils
 from libs.utils import filter_eeg, hilbert
 from libs import kinematics
-from figures import checks as fig_checks
-
-# from figures.figure_cc_per_band_per_kinematic import plot_band_correlations
-
 from libs import kinematics
+from figures import checks as fig_checks
 
 START = 0
 END = 1
@@ -60,18 +56,10 @@ def get_windows(ts, signal, fs, wl, ws):
 
     if signal.ndim == 1:
         signal = signal[:, np.newaxis]
-
-    # is_all_nan = np.all(np.isnan(subset.xyz), axis=1)  # Why is this here?
-
-    # subset.eeg = subset.eeg[~is_all_nan, :]
-    # subset.xyz = subset.xyz[~is_all_nan, :]
-
-    # logger.info(f'Removed {is_all_nan.sum()} out of {is_all_nan.size} windows with only nan')
-
+    
     return signal
 
 def fill_missing_values(data):
-    # TODO: check if needed to handle  leading and trailing nans
 
     data = pd.DataFrame(data)
     isnan = data.isna().sum(axis=0)
@@ -79,22 +67,6 @@ def fill_missing_values(data):
 
     return pd.DataFrame(data).interpolate().to_numpy()
 
-# # NumPy-only function
-# def fill_missing_values_np(data):
-#     data = np.array(data)
-#     nan_indices = np.isnan(data).sum(axis=0)
-#     nan_mean = np.mean(nan_indices)
-#     print(f'Interpolating missing values: On average {nan_mean} samples ({nan_mean/data.shape[0]*100:.1f}%)')
-
-#     data = np.nan_to_num(data, nan=np.nan, copy=False)
-#     for i in range(data.shape[1]):
-#         column = data[:, i]
-#         indices = np.arange(len(column))
-#         valid_indices = indices[~np.isnan(column)]
-#         invalid_indices = indices[np.isnan(column)]
-#         data[:, i][invalid_indices] = np.interp(invalid_indices, valid_indices, column[valid_indices])
-
-#     return data
 def locate_pos(ts, target_ts):
     pos = bisect_right(ts, target_ts)
     if pos == 0:
@@ -196,40 +168,31 @@ def go(ds, save_path, ds_idx):
             b. Downsample to (say) 20 Hz,  equalize framerates.
     '''
     
-    # import matplotlib.pyplot as plt
 
     ds.eeg.timeseries = frequency_decomposition(ds.eeg.timeseries, ds.eeg.fs)
-    # ds.eeg.channels = np.concatenate([list(map(lambda x: x + f'-{band}', ds.eeg.channels)) for band in ['delta', 'alphabeta', 'bbhg']])  # Uncomment if problems later
 
     # Align xyz to higher samples eeg
-    xyz, inserted_idc_xyz = align_matrices_with_diff_fs(
+    xyz, _ = align_matrices_with_diff_fs(
                                 ds.eeg.timeseries,
                                 ds.eeg.timestamps,
                                 ds.xyz,
                                 ds.xyz_timestamps)
     
-    trials, inserted_idc_trials = align_matrices_with_diff_fs(
-                                    ds.eeg.timeseries,
-                                    ds.eeg.timestamps,
-                                    ds.trials, 
-                                    ds.xyz_timestamps)
+    trials, _ = align_matrices_with_diff_fs(
+                                ds.eeg.timeseries,
+                                ds.eeg.timestamps,
+                                ds.trials, 
+                                ds.xyz_timestamps)
 
-    target_vector, inserted_idc_trials = align_matrices_with_diff_fs(
-                                    ds.eeg.timeseries,
-                                    ds.eeg.timestamps,
-                                    ds.target_vector, 
-                                    ds.xyz_timestamps)
+    target_vector, _ = align_matrices_with_diff_fs(
+                                ds.eeg.timeseries,
+                                ds.eeg.timestamps,
+                                ds.target_vector, 
+                                ds.xyz_timestamps)
 
     ds.xyz = xyz
     ds.trials = trials
     ds.target_vector = target_vector
-    
-    # indices_with_value = np.where(~np.isnan(ds.xyz[:, 0]))[0]
-    # ds
-
-    assert inserted_idc_xyz[0] == inserted_idc_trials[0], logger.error('xyz and trials misaligned!')
-    assert inserted_idc_xyz.size == inserted_idc_trials.size, logger.error('xyz and trials differ in size!')
-    
 
     subset_idc = get_subset_idc(ds.xyz, ds.eeg.fs, ds_idx, path=save_path)
 
@@ -248,50 +211,13 @@ def go(ds, save_path, ds_idx):
                         channels =      ds.eeg.channels,
                         mapping =       ds.eeg.channel_map)
 
-        # fig, ax = plt.subplots()
-        # idc = np.where(~np.isnan(ds.trials[:, 0]))[0]
-        # ax.scatter(idc, ds.trials[idc, 1])
-        # ax.plot(idc, ds.trials[idc, 1])
-        # ax.axvline(s, color='green')
-        # ax.axvline(e, color='red')
-
-        # Sometimes there is no trial information, making the 
-        print()
-        # Breaks when there is a gap, but too short to be filled as subset
-        # assert (np.where(~np.isnan(subset.xyz[:, 0]))[0] == np.where(~np.isnan(subset.trials[:, 0]))[0]).all(), logger.error('xyz and trials idc are not identical!')
-
-        # if (~np.isnan(subset.xyz)).sum() == 0:
-        #     logger.error('No values in subset!')
-        #     raise Exception('No values in subset!')
-
-        if c.target_vector:  # If triggered, then xyz and trials are misalinged
-
-            # if (~np.isnan(subset.target_vector)).sum() == 0:
-            #     print(s, e)
-
-            #     # plt.show()
-            #     # raise Exception('TV has no values in subset!')
-            #     logger.warning('TV has no values in subset!')
-            #     continue
-            
+        if c.target_vector:  
             subset.xyz = subset.target_vector
 
         subset.xyz = kinematics.get_all(subset, has_target_vector=c.target_vector)
-        
-        before = subset.xyz.copy()
         subset.xyz = fill_missing_values(subset.xyz)
-        
 
         behavior_per_trial += get_behavior_per_trial(subset)
-
-        # if subset.xyz[:, 10].max() > 2000:
-            
-        #     print('high spike in speed detected', s, e)
-        #     fig, ax = plt.subplots(nrows=3)
-        #     ax[0].plot(subset.xyz[s:e, 10])
-        #     ax[1].plot(subset.trials[s:e, 1])
-        #     ax[2].plot(subset.xyz[s:e, 0])
-        #     plt.show()
 
         subset.eeg = get_windows(subset.ts, subset.eeg, subset.fs, c.window.length, c.window.shift)
         subset.xyz = get_windows(subset.ts, subset.xyz, subset.fs, c.window.length, c.window.shift)
@@ -304,8 +230,6 @@ def go(ds, save_path, ds_idx):
 
     with open(save_path/f'behavior_per_trial_{ds_idx}.pkl', 'wb') as f:
         pickle.dump(behavior_per_trial, f)
-
-    # Quickplot: plt.close('all');plt.figure();[plt.plot(subset.xyz[:100, 10]) for subset in subsets];plt.savefig('tmp.png')
 
     return subsets
 

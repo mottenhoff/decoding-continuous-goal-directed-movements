@@ -1,6 +1,5 @@
-import csv  # TEMP
+import csv
 import re
-
 import logging
 from dataclasses import fields
 from pathlib import Path
@@ -9,24 +8,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
 from mne.stats import fdr_correction
-from scipy.stats import pearsonr, spearmanr
 
 from libs import utils
-from libs import kinematics as kin
 
 logger = logging.getLogger(__name__)
 c = utils.load_yaml('./config.yml')
-
-    # from sklearn.decomposition import FastICA
-
-    # ica = FastICA(n_components=10)
-    # cs = ica.fit_transform(eeg)
-
-    # fig, ax = plt.subplots(nrows=cs.shape[1], ncols=1, figsize=(12, 16), dpi=200)
-    # for i, row in enumerate(cs.T):
-    #     ax[i].plot(row)
-    
-    # fig.savefig('ica.svg')
 
 def load(path):
     m =  np.load(path/'metrics.npy')  # CC, R2, MSE, RMSE
@@ -44,8 +30,6 @@ def reset():
     for f in path.glob('**/*'):
         if f.is_file():
             f.unlink(missing_ok=True)
-
-
 
 def plot_eeg(eeg, channel_names, name, loc_map={}):
     # including markers
@@ -87,16 +71,16 @@ def plot_xyz(xyz):
     for j, k in enumerate([pos, vel]):
         ax[0].scatter(idc, k[:, 0], s=2, c='blue' if j==0 else 'orange')
         ax[0].plot(idc, k[:, 0], linestyle='--' if j==0 else '-',
-                                   label='pos' if j==0 else 'vel', 
-                                   c='blue' if j==0 else 'orange')
+                                 label='pos' if j==0 else 'vel', 
+                                 c='blue' if j==0 else 'orange')
         ax[1].scatter(idc, k[:, 1], s=2, c='blue' if j==0 else 'orange')
         ax[1].plot(idc, k[:, 1], linestyle='--' if j==0 else '-',
-                                   label='pos' if j==0 else 'vel', 
-                                   c='blue' if j==0 else 'orange')
+                                 label='pos' if j==0 else 'vel', 
+                                 c='blue' if j==0 else 'orange')
         ax[2].scatter(idc, k[:, 2], s=2, c='blue' if j==0 else 'orange')
         ax[2].plot(idc, k[:, 2], linestyle='--' if j==0 else '-',
-                                   label='pos' if j==0 else 'vel', 
-                                   c='blue' if j==0 else 'orange')
+                                 label='pos' if j==0 else 'vel', 
+                                 c='blue' if j==0 else 'orange')
     ax[3].plot(idc, spe, label='speed')
 
     fig.legend()
@@ -146,10 +130,9 @@ def plot_gap_cuts(xyz, idc, subset_idc, dataset_num, save_path=None):
     fig.savefig(path/f'gap_cuts_{dataset_num}.png')
     fig.savefig(path/f'gap_cuts_{dataset_num}.svg')
 
-
 def plot_events(dataset):
 
-    xyz, events, trials = dataset.xyz, dataset.events, dataset.trials[:, 0]
+    xyz, events, _ = dataset.xyz, dataset.events, dataset.trials[:, 0]
 
     cmap = get_cmap('tab20')
 

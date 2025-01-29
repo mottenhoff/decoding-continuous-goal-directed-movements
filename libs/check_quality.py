@@ -6,7 +6,6 @@ Reasons to flag channels:
 3) Abnormal amplitude distribution
 4) Excessive (line) noise
 5) Outliers
-
 '''
 
 import logging
@@ -74,10 +73,6 @@ class QualityChecker:
             # Calculates the <search_in_n_max_values> maximum values and retrieves the
             # channels per timestamps in which these maximum values appear. The channel 
             # with the most maximum values per timestamp is flagged.
-            # TODO: Check some sort of normalizing measure (Comparing Z-Scores?)
-            # TODO: ERROR: WILL ALWAYS FLAG A CHANNEL
-            # NOTE: Assumption: EKG has many large negative spikes outside of the range
-            #                   of regular EEG channels
             search_in_n_max_values = 10000
             sorted_values = np.sort(np.abs(eeg), axis=0)
             channel_with_max_values = np.argmax(sorted_values[-search_in_n_max_values:, :],
@@ -111,9 +106,6 @@ class QualityChecker:
         else:
             # Flag if the channels average log(power) over all frequencies
             #   is higher than the average log(power) over all channels.
-            # TODO: Check if marker_channels and ekg_channel are already found,
-            #       and remove them from the flagged channels array.
-            # TODO: ERROR! WILL ALWAYS FLAG VALUES
             ps_log_mean = np.log(np.abs(np.fft.rfft(eeg.T-eeg.T.mean(axis=0)))**2).T.mean(axis=0)
             flagged_channels = np.where(ps_log_mean > ps_log_mean.mean())[0]
 
@@ -308,21 +300,6 @@ class QualityChecker:
 
         return flagged_channels
 
-    def detect_outliers(self, 
-                        eeg: np.array,
-                        plot: bool=False) -> list:
-        lrms = np.log(np.sqrt(eeg**2))#+1e-10)
-        nan1 = np.isnan(lrms)
-        lrms_norm = zscore(lrms, axis=0)
-        nan2 = np.isnan(lrms_norm)
-
-
-
-
-        ampl_p = 1-norm.cdf(np.abs(lrms_norm))
-        flagged_channels = np.where(ampl_p <= 0.05)[0]
-        pass
-
     def run_all(self,
                 eeg: np.array,
                 timestamps: np.array,
@@ -338,7 +315,6 @@ class QualityChecker:
         self.get_marker_channels(eeg, channel_names=channel_names, plot=plot)
         self.get_ekg_channel(eeg, channel_names=channel_names, plot=plot)
         self.get_disconnected_channels(eeg, channel_names=channel_names, plot=plot)
-        self.detect_outliers() # TODO
 
         if self.results['consistent_timestamps']['invalid_timesteps'].size > 0:
             print('WARNING: invalid timestamps found!')
@@ -353,45 +329,3 @@ class QualityChecker:
                          for results in self.results.values()]
                     )).astype(int)
             return flagged_channels
-
-if __name__=='__main__':
-    import sys
-    paths = [r"./../../Utility/Helpers/xdf_reader/"]
-    for path in paths:
-        sys.path.insert(0, path)
-    from read_xdf import read_xdf
-    path = r'your_path_to_xdf'
-    # path = r'L:\FHML_MHeNs\sEEG\kh25\20210802\grasp.xdf'
-    # path = r'L:\FHML_MHeNs\sEEG\kh14\sentences1.xdf'
-    path = r'L:\FHML_MHeNs\sEEG\kh14\imagine.xdf'
-    data, raw = read_xdf(path)
-    
-    plot = True
-    qc = QualityChecker()
-    # qc.consistent_timestamps(data['Micromed']['ts'], data['Micromed']['fs'], plot=plot)
-    irrelevant_channels = np.concatenate([
-            qc.get_marker_channels(data['Micromed']['data'], 
-                                channel_names=data['Micromed']['channel_names']),
-            qc.get_ekg_channel(data['Micromed']['data'], 
-                            channel_names=data['Micromed']['channel_names']),
-            qc.get_disconnected_channels(data['Micromed']['data'], 
-                                        channel_names=data['Micromed']['channel_names'])
-            ]).astype(int)
-    eeg = np.delete(data['Micromed']['data'], irrelevant_channels, axis=1)
-    channel_names = np.delete(data['Micromed']['channel_names'], irrelevant_channels)
-    qc.detect_outliers(eeg)
-
-
-
-    # flagged_channels = \
-    #     qc.run_all(data['Micromed']['data'],
-    #            data['Micromed']['ts'],
-    #            data['Micromed']['fs'],
-    #            channel_names=data['Micromed']['channel_names'],
-    #            return_all_flagged_channels=True,
-    #            plot=plot)
-    # print(flagged_channels)
-    
-    plt.show()
-
-    

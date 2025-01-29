@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 from cmcrameri import cm
 
 import figures.plot_dataset
@@ -15,16 +14,12 @@ def task_correlations(datasets, savepath):
     cm = np.corrcoef(np.hstack([y, z]), rowvar=False)
     task_correlations = cm[-z.shape[1]:, :y.shape[1]]
 
-    # TODO: Monte Carlo simulation, same as significance testing using in decoding performance.
-
     task_correlations = np.vstack([datasets[0].channels, task_correlations]) # first row is the corresponding channel_names
 
     with open(savepath/'task_correlations.npy', 'wb') as f:
         np.save(f, task_correlations)
 
 def plot_trajectory(datasets, savepath, all_sets=True):
-
-    # TODO: z and target seems to be in differnt coordinate spaces.
 
     if all_sets:
         targets = np.vstack([np.unique(subset.trials[~np.isnan(subset.trials[:, 0])], axis=0)
@@ -46,16 +41,10 @@ def plot_trajectory(datasets, savepath, all_sets=True):
     ax.set_ylabel('Z [front - back]', fontsize='xx-large')
     ax.set_zlabel('Y [down - up]',    fontsize='xx-large')
 
-    # fig.savefig('tmp.png')
     fig.savefig(savepath/'trajectories_with_targets.png')
     fig.savefig(savepath/'trajectories_with_targets.svg')
-
 
 def main(datasets, savepath):
     task_correlations(datasets, savepath)
     plot_trajectory(datasets, savepath)
     figures.plot_dataset.plot_subsets(datasets, savepath)
-    # for num, dataset in enumerate(datasets):
-    #     figures.plot_dataset.plot_random_selection_per_trial(dataset, num, savepath) # Currently broken 
-    # plt.close('all')
-    return

@@ -1,20 +1,8 @@
-'''
-https://github.com/ShanechiLab/PyPSID
-
-[ ] Check if PSID version = 1.10+. Then extracting the mean and add it after learning is not necessary anymore
-[ ] Check n1 <= nz * i  AND   nx <= ny *i. Important to report i in paper
-[ ] Extract only relevant states by setting nx = n1
-[ ] Use PSID.evaluation.evalPrediction
-[ ] Plot EigenValues of A Matrix of learned models and 'True' models to check the accurate learning (probably not possible with our data)
-
-PSID tutorial: https://github.com/ShanechiLab/PyPSID/blob/main/source/PSID/example/PSID_tutorial.ipynb
-'''
 import sys
 import logging
 import cProfile
 import pstats
 import io
-import re
 from os import cpu_count
 from multiprocessing import Pool
 from pathlib import Path
@@ -37,7 +25,6 @@ try:
     with open('config.yml', 'w') as f:
         yaml.dump(utils.nested_namespace_to_dict(config), f)
 except IndexError:
-    # logger = logging.getLogger(__name__)
     logger.warning('No config supplied, using last available config file')
 finally:
     c = utils.load_yaml('./config.yml')  
@@ -48,17 +35,14 @@ import run_decoder
 def init_logging(results_path):
 
     console_handler = logging.StreamHandler(sys.stdout)
-    # console_handler.setLevel(logging.WARNING)
     console_handler.setLevel(logging.INFO)
-    # console_handler.setLevel(logging.DEBUG)
     
     log_filename = f'output.log'
     logging.basicConfig(format="[%(filename)10s:%(lineno)3s - %(funcName)20s()] %(message)s",
                         level=logging.INFO if not c.debug.log else logging.DEBUG,
                         handlers=[
                             logging.FileHandler(results_path/f'{log_filename}'),  # save to file
-                            logging.StreamHandler(),  # print to terminal
-                            # console_handler
+                            logging.StreamHandler(),                              # print to terminal
                             ])
     return
 
@@ -102,11 +86,9 @@ def main():
     # Setup some paths
     main_path = Path(c.learn.save_path)
     today = dt.today().strftime('%Y%m%d_%H%M')
-
     main_path = main_path/today
     main_path.mkdir(parents=True, exist_ok=True)
 
-    # data_path = Path(sys.argv[2])
     data_path = Path('../data')
     filenames = list(data_path.rglob('*.xdf'))  # All xdf files.
 
