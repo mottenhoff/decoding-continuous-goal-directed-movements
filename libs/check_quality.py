@@ -7,7 +7,7 @@ Reasons to flag channels:
 4) Excessive (line) noise
 5) Outliers
 '''
-
+from pathlib import Path
 import logging
 import re
 from typing import Callable, Union
@@ -56,7 +56,10 @@ class QualityChecker:
                 ax[i].set_title('Channel #{}'.format(channel_names[ch] \
                                                      if channel_names else ch))
             fig.suptitle('Channels flagged as Marker channel')
-            fig.savefig('./figures/checks/q_marker_channels.svg')
+
+            path = Path('./figures/checks/')
+            path.mkdir(parents=True, exist_ok=True)
+            fig.savefig(path)
 
         logger.info(f'Flagged marker channels: {[channel_names[ch] for ch in flagged_channels]}')
         return flagged_channels

@@ -30,7 +30,7 @@ def select_top_correlated(y, z, n_features):
                 selected_features.append(feature)
             
             if len(selected_features) == n_features:
-                logger.info(f'Selected {n_features} features: {selected_features}')
+                logger.info(f'Selected {n_features} features: {np.array(selected_features).astype(np.int16)}')
                 return np.array(selected_features)
         
     if summed_correlation := False:
