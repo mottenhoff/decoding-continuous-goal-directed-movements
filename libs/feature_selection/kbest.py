@@ -1,8 +1,7 @@
 import logging
 
 import numpy as np
-from scipy.stats import pearsonr
-from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
+from sklearn.feature_selection import SelectKBest, f_regression
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ def select_k_best(y, z, n_dims):
         #                .fit(y, z[:, dim])
         s = SelectKBest(f_regression, k=n_dims//z.shape[1]) \
                        .fit(y, z[:, dim])
-        # scores[dim, :] = np.argsort(s.scores_)
+        scores[dim, :] = np.argsort(s.scores_)
 
     # Dynamic selection, in case of overlapping features
     features = np.array([], dtype=np.int32)

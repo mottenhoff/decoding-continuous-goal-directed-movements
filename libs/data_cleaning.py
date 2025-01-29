@@ -1,8 +1,6 @@
-# Builtin
 import yaml
 import logging
 
-# 3th party
 import numpy as np
 import matplotlib.pyplot as plt
 

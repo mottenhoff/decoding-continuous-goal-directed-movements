@@ -8,4 +8,3 @@ pyxdf
 polars
 pandas
 PSID
-DPAD

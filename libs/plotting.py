@@ -6,7 +6,6 @@ def plot_effective_framerate(ts):
         # Spikes are suspected to be hand out of bounds. 
     # No label included in initial pilots
     effective_framerate = 1/np.diff(ts).mean()
-    # print(effective_framerate)
 
     fig = plt.figure()
     plt.plot(ts, np.concatenate([[0], np.diff(ts)]))

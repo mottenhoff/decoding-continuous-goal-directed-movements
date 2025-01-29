@@ -1,18 +1,14 @@
-# Builtin
 import logging
 from collections import Counter
 from types import SimpleNamespace
 
-# 3th party
 import numpy as np
 import scipy.signal
 import yaml
 import mne
 from scipy import fftpack
 from scipy.signal import resample
-from mne.filter import filter_data, notch_filter
-
-# Local
+from mne.filter import filter_data
 
 logger = logging.getLogger(__name__)
 mne.set_log_level('WARNING')
@@ -159,12 +155,6 @@ def downsample(signal: np.array, fs: float, target_max_freq: float, target_sampl
 
     return resample(signal, target_samples, axis=0)
     
-
-
-
-
-
-
 
 if __name__=='__main__':
 

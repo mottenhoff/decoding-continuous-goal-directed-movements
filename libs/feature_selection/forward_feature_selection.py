@@ -26,10 +26,8 @@ def forward_feature_selection(n_features, n_folds, y, z, nx, n1, i):
 
                 id_sys = PSID.PSID(y_train, z_train, nx, n1, i,
                                     zscore_Y=True, zscore_Z=True)
-                zh, yh, xh = id_sys.predict(y_test)
+                zh, _, _ = id_sys.predict(y_test)
 
-                # TODO: What to optimize for? zh, yh, xh?
-                #       corr, RMSE, ... ?
                 corr = np.corrcoef(z_test, zh, rowvar=False)
 
                 current_scores = np.append(current_scores,

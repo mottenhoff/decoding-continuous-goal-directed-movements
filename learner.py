@@ -168,7 +168,7 @@ def fit(datasets, save_path):
                 # Fit and score PSID
                 id_sys = PSID.PSID(y_train_train, z_train_train, nx, n1, i)
 
-                zh, yh, xh = id_sys.predict(y_train_test)
+                zh, yh, _ = id_sys.predict(y_train_test)
                 metrics = np.vstack([eval_prediction(z_train_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])  # returns metrics x kinematics (=n_z)
 
                 logger.info(f'Fold: {i_outer}-{i_inner} | Vcc={metrics[0, -2]:.2f} | nx={nx} n1={n1} i={i}')
@@ -185,7 +185,7 @@ def fit(datasets, save_path):
         
         # Re-train PSID based on the inner-fold grid search
         id_sys = PSID.PSID(y_train, z_train, *best_params, zscore_Y=True, zscore_Z=True)
-        zh, yh, xh = id_sys.predict(y_test)
+        zh, yh, _ = id_sys.predict(y_test)
         metrics = np.vstack([eval_prediction(z_test, zh, measure) for measure in ['CC', 'R2', 'MSE', 'RMSE']])
 
         # Save results from the outer fold

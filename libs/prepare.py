@@ -1,14 +1,13 @@
 import logging
 from dataclasses import dataclass
 import pickle
-
 from bisect import bisect_right
+
 import numpy as np
 import pandas as pd
 
 import libs.utils
 from libs.utils import filter_eeg, hilbert
-from libs import kinematics
 from libs import kinematics
 from figures import checks as fig_checks
 

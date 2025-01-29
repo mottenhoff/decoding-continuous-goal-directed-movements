@@ -53,12 +53,11 @@ def parse_log_file(path):
         
     np.save(path.parent/'selected_channels.npy', np.array(all_values))
 
-
 def main():
 
     main_path = Path(r'finished_runs\delta')
     main_path = Path(r'finished_runs\alphabeta')
-    # main_path = Path(r'finished_runs\bbhg')
+    main_path = Path(r'finished_runs\bbhg')
 
     for path in main_path.rglob('*/output.log'):
         parse_log_file(path)

@@ -1,17 +1,9 @@
 from pathlib import Path
-from itertools import product
-
 from multiprocessing import Pool
 
 import numpy as np
 
-# Local
-from monte_carlo_simulations import random_array_swap
-
-KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a']
-N_FOLDS = 5
-
-AVG_BRAIN_PATH = Path(r'C:\Users\p70066129\Maarten\Resources\codebase\brainplots\models\cvs_avg35_inMNI152')
+from libs.monte_carlo_simulations import random_array_swap
 
 def permutation_metric(original, permuted):
     n_original = original.shape[1]
@@ -21,7 +13,6 @@ def permutation_metric(original, permuted):
     return correlation_matrix[:n_original:, n_original:]
 
 def calculate_chance_level_task_correlations(path, n_permutations):
-    # TODO: main_path from env file
     print(f'Running task correlation: {path}', flush=True)
     
     y, z = np.load(path/'y.npy'), np.load(path/'z.npy')
@@ -56,7 +47,7 @@ def main():
     np.random.seed(2024)
     n_permutations = 100
 
-    main_path = Path(f'finished_runs_2/')
+    main_path = Path(f'finished_runs')
 
     conditions = main_path.rglob('sub-*')
     
