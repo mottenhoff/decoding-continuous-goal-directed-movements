@@ -66,7 +66,6 @@ def plot_overview(results, condition):
 
     metric = CC  # [CC, R2, MSE, RMSE]
 
-    
     scores = {ppt: values['scores'] for ppt, values in results.items()}
     chance_levels = {ppt: values['chance_levels_prediction'] for ppt, values in results.items()}
 
@@ -112,9 +111,7 @@ def plot_overview(results, condition):
         axs[0, i].set_title(col_titles[i], fontsize='xx-large')
 
         axs[-1, i].set_xticks(np.arange(scores.shape[0]))
-        axs[-1, i].set_xticklabels([ppt_map[ppt.split('_')[0]].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
-
-
+        axs[-1, i].set_xticklabels([ppt.split('_')[0].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
 
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)

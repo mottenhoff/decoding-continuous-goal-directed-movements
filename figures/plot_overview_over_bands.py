@@ -78,7 +78,7 @@ def hline_per_bar(ax, x_ticks, chance_levels, label=True):
 
 def stack_scores(data, key=None):
     stack_ppt_scores = lambda ppts: np.stack([values['scores' if not key else key] for values in ppts.values()])
-    return np.stack([stack_ppt_scores(ppts) for freq, ppts in data.items()], axis=0)
+    return np.stack([stack_ppt_scores(ppts) for _, ppts in data.items()], axis=0)
 
 def plot_freqs_vs_states(scores):
 
@@ -170,7 +170,7 @@ def plot_mean_performance(scores, chance_levels, name):
                width=bar_width, label=CONDITION_NAMES[freqs_i],
                color=colors[freqs_i])
         
-        ax = hline_per_bar(ax, x_ticks, chance_levels[freqs_i].mean(axis=0), 
+        ax = hline_per_bar(ax, x_ticks, chance_levels[freqs_i].max(axis=0), 
                            label=True if freqs_i==0 else False)
     
     ax.set_axisbelow(True)
@@ -184,7 +184,7 @@ def plot_mean_performance(scores, chance_levels, name):
     ax.spines[['top', 'right']].set_visible(False)
 
     fig.legend(frameon=False) #, fontsize='x-large')
-
+    # plt.show(block=True)
     fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}.png')
     fig.savefig(f'./figure_output/mean_performance_per_band_per_kinematic{"_"+name}_.svg')
 

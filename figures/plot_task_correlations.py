@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from multiprocessing import Pool
 
@@ -7,9 +8,11 @@ import matplotlib.pyplot as plt
 from cmcrameri import cm
 
 # Local
+sys.path.append("/home/maarten/main/resources/code")
 from locations.transform_location_strings import beautify_str
 from libs import maps
 
+PATH_DATA = Path('../data')
 KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a']
 SPEED = 10
 
@@ -19,7 +22,7 @@ def load(main_path: Path):
 
     contacts = {}
 
-    for path in main_path.glob('kh*'):
+    for path in main_path.glob('sub-*'):
 
         ppt_id = path.name
 
@@ -41,18 +44,20 @@ def load(main_path: Path):
 def load_chance_level(root_path, percentile=.95):
     # Loads chance levels per participant and returns the 95% percentile of all these percentiles
     # per kinematic
-    chance_levels = np.vstack([np.load(path/'0'/'chance_levels_task_correlation_1000.npy')\
-                                 .reshape(-1, len(KINEMATICS))
-                               for path in root_path.glob('kh*')])
-    
-    chance_levels = np.sort(chance_levels, axis=0)[int(chance_levels.shape[0]*percentile), :]
 
-    # print(chance_levels)
+    chance_level_files = root_path.rglob('chance_levels_task_correlation_1000.npy')
+    permutations = np.vstack([np.load(filepath).reshape(-1, len(KINEMATICS)) for filepath in chance_level_files])
+    
+    idx_percentile = int(permutations.shape[0] * percentile)
+        
+    chance_levels = np.sort(np.abs(permutations), axis=0)[idx_percentile, :]
+    chance_levels[:] = chance_levels.max()  # Corrects for multiple testing
+
     return chance_levels
 
 def load_contacts(ppt_id):
 
-    path = Path('./data')/ppt_id/'electrode_locations.csv'
+    path = PATH_DATA/ppt_id/'electrode_locations.csv'
 
     if not path.exists():
         return pl.DataFrame()
@@ -99,7 +104,6 @@ def task_correlations_per_channel(df, chance_level, outpath,
                          .sort(by='correlations')
     unique_locations = unique_locations.get_column('anatomical_location').to_list()
 
-
     # Plot it
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 20))
 
@@ -113,9 +117,10 @@ def task_correlations_per_channel(df, chance_level, outpath,
 
         ax.scatter(ppt_df.get_column('correlations'), 
                    y_idc, 
-                   s=15, 
+                #    s=15, 
+                   s=100,
                    color=colors[ppt],
-                   label=maps.ppt_id()[ppt])
+                   label=ppt)
         
     ax.axvline(chance_level, color='black')
 
@@ -157,14 +162,14 @@ def task_correlations_per_channel(df, chance_level, outpath,
 
 def plot_condition(path):
 
+    chance_levels = load_chance_level(path, 0.95)
+
     condition_name = path.name
     for kinematic_idx, kinematic_name in enumerate(KINEMATICS):
         print(f'Running: {path} {kinematic_name}', flush=True)
         
         if not (condition_name == 'bbhg_lap' and kinematic_name =='v'):
             continue
-
-        chance_level = load_chance_level(path, percentile=.99)  # TODO: move back
 
         df = pl.DataFrame(schema={'ppt': str,
                                 'electrode': str,
@@ -174,7 +179,7 @@ def plot_condition(path):
         outpath = Path(f'figure_output/channel_correlations/{condition_name}/{kinematic_name}')
         outpath.mkdir(exist_ok=True, parents=True)
 
-        for path_ppt in path.glob('kh*'):
+        for path_ppt in path.glob('sub-*'):
 
             # Load contacts
             contacts = load_contacts(path_ppt.name)
@@ -187,8 +192,8 @@ def plot_condition(path):
 
             df = pl.concat([df.select(sorted(df.columns)) for df in [df, contacts]])    
 
-        task_correlations_per_channel(df, chance_level[kinematic_idx], outpath)
-        task_correlations_per_channel(df, chance_level[kinematic_idx], outpath,
+        task_correlations_per_channel(df, chance_levels[kinematic_idx], outpath)
+        task_correlations_per_channel(df, chance_levels[kinematic_idx], outpath,
                                       only_significant_channels=True)
         plt.close('all')
 

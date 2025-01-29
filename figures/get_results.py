@@ -18,7 +18,8 @@ def load_chance_levels(path, name, percentile=0.95):
 
     n_permutations = int(filepath.stem.split("_")[-1])
     idx_nth_percentile = int(n_permutations * percentile)
-    return np.sort(np.abs(chance_levels), axis=0)[idx_nth_percentile, :]
+    chance_levels = np.sort(np.abs(chance_levels), axis=0)[idx_nth_percentile, :]
+    return chance_levels
 
 def get_best_scores(results):
     metric = lambda v: v['scores'][:, :, 0, :].mean(axis=1).sum(axis=-1).argmax()
@@ -41,6 +42,8 @@ def get_results(path_main, path_data, skip=False):
     for run in all_runs:
         
         ppt_id = run.name
+
+        run = run/'0' if (run/'0').exists() else run  # fix for older versions
 
         if Path(run/'profile.prof') not in run.iterdir():
             continue

@@ -1,15 +1,15 @@
-
+import sys
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 from mayavi import mlab
 
-from libs import maps
+sys.path.append('/home/maarten/main/resources/code')
 from brainplots import brainplots
 
-AVG_BRAIN_PATH = Path(r'C:\Users\micro\main\resources\code\brainplots\models\cvs_avg35_inMNI152')
-PATH_SERVER = Path(r'L:/FHML_MHeNs\sEEG/')
+AVG_BRAIN_PATH = Path('/home/maarten/main/resources/code/brainplots/models/cvs_avg35_inMNI152/')
+PATH_DATA = Path(r'../data')
 KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a']
 
 ELECTRODE_NAMES = 0
@@ -25,21 +25,28 @@ def load_brain():
 
 def load_chance_level(root_path, percentile=.95):
    
-    # May currently even be 99th percentile
-    # 1) Get the 95th percentile per participant
-    # 2) Take the max correlation over all channels
-    chance_levels = {}
-    for path in root_path.glob('kh*'):
-        chance_level_per_ppt = np.load(path/'0'/'chance_levels_task_correlation_1000.npy')
-        chance_level_per_ppt = np.sort(chance_level_per_ppt, axis=0)[int(chance_level_per_ppt.shape[0]*percentile), :]
-        chance_level_per_ppt = np.max(chance_level_per_ppt, axis=0)
-        chance_levels[path.name] = chance_level_per_ppt
+    # Take stack all permutation over all channels and participants -> [n_channels*n_permutations*n_participantks, n_kinematics]
+    # take 95th percentile of the absolute values in that matrix
+    # Take the max over the chance levels of each kinematic.
 
-    return chance_levels
+    # TODO: May not be exactly what Christian suggested.
+
+    chance_levels = []
+    ppts = []
+    for path in root_path.glob('sub-*'):
+        ppts.append(path.name)
+        chance_level_per_ppt = np.load(path/'0'/'chance_levels_task_correlation_1000.npy')
+        chance_levels += [np.abs(chance_level_per_ppt).reshape(-1, len(KINEMATICS))]
+
+    chance_levels = np.vstack(chance_levels)
+    print(chance_levels.shape)
+    chance_level = np.max(np.sort(chance_levels, axis=0)[int(chance_levels.shape[0]*percentile), :])
+
+    return {ppt: np.full((len(KINEMATICS)), chance_level) for ppt in ppts}
+
 
 def load_contacts(path, ppt_id):
 
-    ppt_id = maps.ppt_id()[ppt_id]
     electrode_path = list(path.rglob(f'{ppt_id}/elec_all*'))[0]
 
     contacts = brainplots.Contacts(electrode_path)
@@ -48,14 +55,14 @@ def load_contacts(path, ppt_id):
     
 def load_correlations(ppt_path, kinematic):
 
+    # print(ppt_path)
     correlations = np.load(ppt_path/'0'/'task_correlations.npy')
     
     return pl.DataFrame([correlations[ELECTRODE_NAMES, :],
                         correlations[kinematic+1, :].astype(np.float64)],
                         schema={
                             'electrode': str,
-                            'correlations': float},
-                        strict=False)
+                            'correlations': float})
 
 def save_numbers(contacts):
     unique_idx = lambda c: np.unique(np.where(c.colors == np.array([201, 79, 75, 255]))[0])
@@ -106,14 +113,12 @@ def color_by_significance(contact_set, correlations):
 def main():
 
     main_path = Path(f'finished_runs/')
-    main_data = Path(f'../../../resources/data/bubbles-psid-2024')
+    data_path = Path(f'../data')
     main_outpath = Path(f'figure_output/')
 
-    ppts = [ppt_path.name for ppt_path in Path('data').glob('kh*')]
-
+    ppts = [ppt_path.name for ppt_path in Path(PATH_DATA).glob('sub-*')]
     brain = load_brain()
-    contacts = {ppt: load_contacts(main_data, ppt) for ppt in ppts}
-
+    contacts = {ppt: load_contacts(data_path, ppt) for ppt in ppts}
     conditions = main_path.glob('*')
     for condition in conditions:
 
@@ -121,6 +126,8 @@ def main():
             continue
 
         chance_levels = load_chance_level(condition, percentile=.95)
+
+        print('cl:', chance_levels, condition)
 
         for kinematic_idx, kinematic in enumerate(KINEMATICS):
             print(f'running {condition} {kinematic}', flush=True)
@@ -130,7 +137,7 @@ def main():
                 continue
             ratio = []
 
-            for ppt in condition.glob('kh*'):
+            for ppt in condition.glob('sub-*'):
                 
                 if not contacts[ppt.name]:
                     continue
@@ -149,10 +156,10 @@ def main():
                 contact_sets.append(contact_set)
 
             print(f'mean ratio of significant channels: {np.mean(ratio)}')
-            save_numbers(contact_sets)
+            # save_numbers(contact_sets)
 
 
-            scene = brainplots.plot(brain, contact_sets, show=True)
+            scene = brainplots.plot(brain, contact_sets, show=False)
 
             outpath = main_outpath/'brains3D'/condition.name/kinematic/'significant_channels'
             outpath.mkdir(parents=True, exist_ok=True)

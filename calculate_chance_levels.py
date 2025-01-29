@@ -12,7 +12,6 @@ KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a
 N_FOLDS = 5
 
 AVG_BRAIN_PATH = Path(r'C:\Users\p70066129\Maarten\Resources\codebase\brainplots\models\cvs_avg35_inMNI152')
-PATH_SERVER = Path(r'L:/FHML_MHeNs\sEEG/')
 
 def permutation_metric(original, permuted):
     n_original = original.shape[1]
@@ -35,10 +34,9 @@ def calculate_chance_level_task_correlations(path, n_permutations):
                                       repetitions=n_permutations)
     np.save(path/f'chance_levels_task_correlation_{n_permutations}.npy', chance_levels)
 
-def calculate_chance_level_prediction(path, n_permutations):
+def calculate_chance_level_movement(path, n_permutations):
     print(f'Running prediction: {path}', flush=True)
     
-    zh = np.vstack([np.load(path/f'{i}'/'trajectories.npy') for i in range(N_FOLDS)])
     z = np.load(path/'0'/'z.npy')
     
     chance_levels = random_array_swap(z,
@@ -66,14 +64,14 @@ def main():
         pool = Pool(processes=8)
         for path in conditions:
             pool.apply_async(calculate_chance_level_task_correlations, args=(path, n_permutations))
-            pool.apply_async(calculate_chance_level_prediction, args=(path, n_permutations))
+            pool.apply_async(calculate_chance_level_movement, args=(path, n_permutations))
         pool.close()
         pool.join()
 
     else:
         for path in conditions:
             calculate_chance_level_task_correlations(path, n_permutations)
-            calculate_chance_level_prediction(path, n_permutations)
+            calculate_chance_level_movement(path, n_permutations)
 
 if __name__=='__main__':
     main()

@@ -16,87 +16,61 @@ from figures import plot_dataset_metrics
 from figures import get_results as gr
 from figures import plot_task_correlations
 
-# from figures import plot_3d_brains_significance
 
 # from libs import utils
 # c = utils.load_yaml('./config.yml')
 
 
 if __name__=='__main__':
-    path_data = Path(r'..\..\..\resources\data\bubbles-psid-2024')
 
-    all_paths = [
-        Path(r'finished_runs\delta_cer'),
-        Path(r'finished_runs/alphabeta_cer'),
-        Path(r'finished_runs\bbhg_cer'),
-        Path(r'finished_runs\delta_lap'),
-        Path(r'finished_runs/alphabeta_lap'),
-        Path(r'finished_runs\bbhg_lap'),
-        Path(r'finished_runs\delta_cer_tv'),
-        Path(r'finished_runs/alphabeta_cer_tv'),
-        Path(r'finished_runs\bbhg_cer_tv')
-        ] 
+    path_data = Path(r'../data/')
 
-    all_paths = [
-        Path(r'finished_runs_2\delta_cer'),
-        Path(r'finished_runs_2/alphabeta_cer'),
-        Path(r'finished_runs_2\bbhg_cer'),
-        Path(r'finished_runs_2\delta_lap'),
-        Path(r'finished_runs_2/alphabeta_lap'),
-        Path(r'finished_runs_2\bbhg_lap'),
-        Path(r'finished_runs_2\delta_cer_tv'),
-        Path(r'finished_runs_2/alphabeta_cer_tv'),
-        Path(r'finished_runs_2\bbhg_cer_tv')
-        ] 
+    all_paths =[
+        # Path(r'finished_runs/delta_cer'),
+        # Path(r'finished_runs/alphabeta_cer'),
+        # Path(r'finished_runs/bbhg_cer'),
+        # Path(r'finished_runs/delta_lap'),
+        # Path(r'finished_runs/alphabeta_lap'),
+        Path(r'finished_runs/bbhg_lap'),
+        # Path(r'finished_runs/delta_cer_tv'),
+        # Path(r'finished_runs/alphabeta_cer_tv'),
+        # Path(r'finished_runs/bbhg_cer_tv')
+        ]
 
-
-# results\full-run-2\sub-01\behavior_per_trial_0.pkl
+    # from figures import plot_3d_brains_significance
     # plot_3d_brains_significance.main()
 
     results = {path.stem: gr.get_results(path, path_data) for path in all_paths}
 
-    # # Individual decoding scores per kinematic
-    for condition, result in results.items():
-        plot_decoding_scores.plot_overview(result, condition)
+    # Individual decoding scores per kinematic
+    # for condition, result in results.items():
+    #     plot_decoding_scores.plot_overview(result, condition)
 
     # Aggregated decoding performance per kinematic
-    for opt in [
-        'cer', 
-        'lap', 
-        'cer_tv'
-        ]:
+    # for opt in ['cer', 'lap', 'cer_tv']:
         
-        run_results  = {key: value for key, value in results.items() 
-                        if key in [f'delta_{opt}', 
-                                   f'alphabeta_{opt}',
-                                   f'bbhg_{opt}']}
+    #     run_results  = {key: value for key, value in results.items() 
+    #                     if key in [f'delta_{opt}', 
+    #                                f'alphabeta_{opt}',
+    #                                f'bbhg_{opt}']}
 
-        plot_overview_over_bands.plot(run_results, name=opt)
+    #     plot_overview_over_bands.plot(run_results, name=opt)
 
     plot_task_correlations.main()
 
-    plot_dataset_metrics.plot_average_time_to_target(all_paths[0])  # Only first condition because behavior is the same.
-    plot_dataset_metrics.plot_speed_curve(all_paths[0])  # Only first condition because behavior is the same.
-    plot_dataset_metrics.plot_average_trajectory(all_paths[0])  ## Throws error
-    # print()
-    
-    # TODO: Reconstruction plot as example of performance.
+    # plot_dataset_metrics.plot_average_time_to_target(all_paths[0])  # Only first condition because behavior is the same.
+    # plot_dataset_metrics.plot_speed_curve(all_paths[0])  # Only first condition because behavior is the same.
+    # plot_dataset_metrics.plot_average_trajectory(all_paths[0])  ## Throws error
+    # plot_dataset_metrics.plot_average_trajectory_hist(all_paths[0])  
+   
+    # # Reconstruction
+    # # plot_reconstruction_overview.make(path)
+    # # summarize.main(Path('./results/combined'))
+    # # Brain correlations
+    # # Brain combined plot
 
-
-
-
-
-    # gaps_vs_performance.plot_relationship(results)  # currently doesnt work
-
-
-    # Reconstruction
-    # plot_reconstruction_overview.make(path)
-        # summarize.main(Path('./results/combined'))
-    # Brain correlations
-    # Brain combined plot
-
-    # NICE TO HAVE
-    # Latent state comparison
-        # latent_state_comparisons.main(best_paths)
+    # # NICE TO HAVE
+    # # Latent state comparison
+    #     # latent_state_comparisons.main(best_paths)
 
     
