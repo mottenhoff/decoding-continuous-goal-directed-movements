@@ -34,9 +34,7 @@ def get_best_scores(results):
 
 def get_results(path_main, path_data, skip=False):
 
-    # all_runs = [session for ppt in path_main.iterdir() if ppt.is_dir() for session in ppt.iterdir()]
     all_runs = [ppt for ppt in path_main.iterdir() if ppt.is_dir()]
-
 
     results = {}
     for run in all_runs:

@@ -1,18 +1,13 @@
-from pathlib import Path
 from itertools import product
 
-import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 
-from libs import maps
-
-
 FREQS, PPTS, STATES, FOLDS, METRICS, KINEMATICS = np.arange(6)
 
-    # Set some information
-CONFIG_I =        (5, 10, 25, 50, 100)  # Should be dynamically from config, but didnt change them anyway
+# Set some information
+CONFIG_I =        (5, 10, 25, 50, 100)
 CONFIG_N1 =       (3, 5, 10, 20, 30)
 KINEMATIC_ORDER = (0, 1, 2, 9, 3, 4, 5, 10, 6, 7, 8, 11)    # x, y, z, sum. For 4x12 plot
 CC, R2, MSE, RMSE = np.arange(4)
@@ -26,14 +21,10 @@ KINEMATIC_NAMES = [
           r'$r_x$',      r'$r_y$',      r'$r_z$',
           r'$v_x$',      r'$v_y$',      r'$v_z$',
           r'$\alpha_x$', r'$\alpha_y$', r'$\alpha_z$',
-          r'$\vec r$',   r'$\vec v$',   r'$\vec \alpha$']
+          r'$\vec r$',   r'$\vec v$',   r'$\vec \alpha$'
+]
 
-
-cmap = cm.batlow
-ppt_map = maps.ppt_id()
-
-permutations = 10
-
+CMAP = cm.batlow
 
 def hline_per_bar(ax, x_ticks, chance_levels, label=True):
     # NOTE: If plotted iteratively (i.e. this functions is called multiple times), 
@@ -64,7 +55,7 @@ def plot_overview(results, condition):
     col_titles = ['X', 'Y', 'Z', r'$\sum$']
     row_titles = ['Position', 'Velocity', 'Acceleration']
 
-    metric = CC  # [CC, R2, MSE, RMSE]
+    metric = CC  # options: [CC, R2, MSE, RMSE]
 
     scores = {ppt: values['scores'] for ppt, values in results.items()}
     chance_levels = {ppt: values['chance_levels_prediction'] for ppt, values in results.items()}
@@ -75,7 +66,7 @@ def plot_overview(results, condition):
     chance_levels = np.stack([chance_levels[ppt] for ppt in ppts])
 
     xticks = np.arange(len(ppts))
-    colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppts))]
+    colors = [CMAP(int(i)) for i in np.linspace(0, 255, len(ppts))]
 
     fig_shape = (3, 4)
     fig, axs = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(16, 9))
@@ -89,7 +80,6 @@ def plot_overview(results, condition):
         
         ax = hline_per_bar(ax, xticks, chance_levels[:, KINEMATIC_ORDER[idx]])
 
-        # ax[idx].set_title(score_name)  # Sanity check
         ax.spines[['top', 'left', 'right']].set_visible(False)
         
         ax.set_xticks(np.arange(len(ppts)))
@@ -115,8 +105,6 @@ def plot_overview(results, condition):
 
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
-    
-    # plt.show()
 
     fig.savefig(f'figure_output/decoder_scores_{condition}.png')
     fig.savefig(f'figure_output/decoder_scores_{condition}.svg')

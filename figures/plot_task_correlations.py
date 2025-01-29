@@ -7,11 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cmcrameri import cm
 
-# Local
-sys.path.append("/home/maarten/main/resources/code")
-from locations.transform_location_strings import beautify_str
-from libs import maps
+from libs.transform_location_strings import beautify_str
 
+# Local
 PATH_DATA = Path('../data')
 KINEMATICS = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'ax', 'ay', 'az', 'r', 'v', 'a']
 SPEED = 10
@@ -69,9 +67,7 @@ def load_contacts(ppt_id):
                        .rename({'electrode_name_1': 'electrode',
                                 'location': 'anatomical_location'})
     
-    contacts = contacts.with_columns(
-        ppt = pl.lit(ppt_id)
-    )
+    contacts = contacts.with_columns(ppt = pl.lit(ppt_id))
 
     return contacts
 
@@ -117,7 +113,6 @@ def task_correlations_per_channel(df, chance_level, outpath,
 
         ax.scatter(ppt_df.get_column('correlations'), 
                    y_idc, 
-                #    s=15, 
                    s=100,
                    color=colors[ppt],
                    label=ppt)
@@ -126,33 +121,19 @@ def task_correlations_per_channel(df, chance_level, outpath,
 
     ax.set_xlim(0, .55)
     ax.tick_params(axis='x', labelsize='x-large')
-    # ax.set_xticks(np.linspace(0, 1, 6))
-    # ax.set_xticklabels(np.linspace(0, 1, 6), fontsize='x-large')
     ax.set_yticks(np.arange(len(unique_locations)))
     ax.set_yticklabels([beautify_str(loc) for loc in unique_locations], 
                        fontsize='xx-large')
-
-
-    # ax.set_title(f'Absolute task correlation per anatomical location.\nsorted by average correlation', fontsize='xx-large')
-    # ax.set_xlabel('Task correlation per channel', fontsize='xx-large')
-    # ax.set_ylabel('Anatomical location', fontsize='xx-large')
 
     ax.axvline(0, color='grey', alpha=.5)
 
     ax.spines[['top', 'right']].set_visible(False)
     ax.grid(visible=True, axis='y', alpha=0.5)
 
-    fig.legend(
-        bbox_to_anchor=[1, 0.1],
-        fontsize='xx-large', 
-        loc='lower right'
-        )
-        # loc='center right') 
+    fig.legend(bbox_to_anchor=[1, 0.1],
+               fontsize='xx-large', 
+               loc='lower right')
     fig.tight_layout()
-
-    # print('chance level:', chance_level)
-    # print(f'Significant channels per ppt: n={df.shape[0]}, ppts={len(ppt_ids)}, sig_per_ppt: {df.shape[0]/len(ppt_ids):.3f}')
-    # # plt.show()
 
     outpath = outpath/'only_significant_channels' if only_significant_channels else outpath
     outpath.mkdir(exist_ok=True, parents=True)

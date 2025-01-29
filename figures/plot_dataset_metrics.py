@@ -1,30 +1,14 @@
 import pickle
-from pathlib import Path
-from random import random
 from collections import defaultdict
 from itertools import chain
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.signal
-import yaml
 
 import cmcrameri.cm as cmc
 
-cmap = cmc.batlow
-
+CMAP = cmc.batlow
 POS, SPEED, ACC = [9, 10, 11]
-
-def load(path):
-    # TODO: Again, copy pasted from figures_1d_score_overview.py
-    m =  np.load(path/'metrics.npy')  # CC, R2, MSE, RMSE
-    z =  np.load(path/'z.npy')
-    # y =  np.load(path/'y.npy')
-    # zh = np.load(path/'trajectories.npy')
-    # yh = np.load(path/'neural_reconstructions.npy')    
-    # xh = np.load(path/'latent_states.npy')
-
-    return m, z, # y, zh, yh, xh
 
 def resample(arr, n_samples):
     
@@ -67,11 +51,8 @@ def plot_violins(ax, ppt_times, cmap):
 
         for body in vp['bodies']:
             body.set_color(cmap(i*85))
-            # body.set_facecolor(cmap(i*85))
-            # body.set_edgecolor(cmap(i*85))
             body.set_alpha(0.65)
         
-        # vp['cbars'].set_color(cmap(i*85))
         vp['cmedians' if i==0 else 'cmeans'].set_color(cmap(i*85))
 
     ax.set_xticks([1, 2])
@@ -86,7 +67,7 @@ def plot_medium_times(ax, ppt_times):
     # Median times
     median_times = [np.median(time) for time in ppt_times.values()]
 
-    ax.bar(0, np.mean(median_times), yerr=np.std(median_times), zorder=0, color=cmap(85), alpha=0.75)
+    ax.bar(0, np.mean(median_times), yerr=np.std(median_times), zorder=0, color=CMAP(85), alpha=0.75)
     ax.scatter(np.zeros(len(median_times)), median_times, s=25, zorder=1, color='black')
 
     ax.set_xlim(-1, 1)
@@ -101,12 +82,12 @@ def plot_average_time_to_target(path):
 
     median_time = np.median(np.hstack(list(ppt_times.values())))
 
-    colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppt_times))]
+    colors = [CMAP(int(i)) for i in np.linspace(0, 255, len(ppt_times))]
 
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
 
     axs[0] = plot_histograms(axs[0], ppt_times, median_time, colors)
-    axs[1] = plot_violins(axs[1], ppt_times, cmap)
+    axs[1] = plot_violins(axs[1], ppt_times, CMAP)
     axs[2] = plot_medium_times(axs[2], ppt_times)
 
     fig.suptitle('Time to target')
@@ -115,7 +96,6 @@ def plot_average_time_to_target(path):
     fig.savefig('./figure_output/time_to_target.svg')
 
 def plot_average_trajectory_hist(main_path):
-    # pos, speed, force = [9, 10, 11]
 
     paths = list(main_path.rglob('behavior_per_trial*'))
 
@@ -141,13 +121,7 @@ def plot_average_trajectory_hist(main_path):
         if ppt_trials:
             trials += [ppt_trials]
     
-    colors = [cmap(int(i)) for i in np.linspace(0, 255, len(ppt_ids))]
-
-    # Pemute order for color readabilit
-    # new_order = np.random.permutation(len(ppt_ids))
-    # trials = [trials[i] for i in new_order]
-    # colors = [colors[i] for i in new_order]
-    # ppt_ids = [ppt_ids[i] for i in new_order]
+    colors = [CMAP(int(i)) for i in np.linspace(0, 255, len(ppt_ids))]
 
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.hist(trials, bins=10, stacked=True, color=colors, label=ppt_ids)
@@ -156,76 +130,14 @@ def plot_average_trajectory_hist(main_path):
     ax.set_ylabel('Count [trials]', fontsize='xx-large')
     ax.set_title('Distance from start to end of trial', fontsize='xx-large')
     ax.spines[['top', 'right']].set_visible(False)
-    # fig.legend()
-    
+
     fig.tight_layout()
     fig.savefig(r'figure_output/distance_per_trials.png')
     fig.savefig(r'figure_output/distance_per_trials.svg')
 
-
-# def plot_average_trajectory(main_path):
-#     # pos, speed, force = [9, 10, 11]
-#     paths = list(main_path.rglob('behavior_per_trial*'))
-
-#     ppt_ids = sorted(set([path.parts[-3] for path in paths]))
-
-#     trials = []
-
-#     for ppt in ppt_ids:
-
-#         ppt_trials = []
-#         for path in paths:
-            
-#             if ppt not in str(path):
-#                 continue
-            
-#             file_trials = []
-#             with open(path, 'rb') as f:
-#                 subset_trials = pickle.load(f)
-#                 file_trials += subset_trials
-                
-#             ppt_trials += [t[:, SPEED] for t in file_trials]
-#             # ppt_trials += [abs(t[-1, POS] - t[0, POS]) for t in file_trials]
-        
-#         if ppt_trials:
-#             trials += [ppt_trials]
-       
-#         fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-
-#         for trial in trials:
-
-#             trial -= trial[0, :]
-#             trial = np.abs(trial)
-
-#             for iax, ax in enumerate(axs, start=POS):
-#                 x = np.linspace(0, 100, trial.shape[0])  # normalized to percentage of trial
-#                 ax.plot(x, trial[:, iax], linewidth=1, color=cmap(random()))
-            
-#         axs[0].set_xlabel('Progression in trial [%]')
-#         axs[0].set_ylabel('Position [mm]')
-
-#         axs[1].set_xlabel('Progression in trial [%]')
-#         axs[1].set_ylabel('Speed [mm/s]')
-
-#         axs[2].set_xlabel('Progression in trial [%]')
-#         axs[2].set_ylabel(r'Acceleration $mm/s^2$')
-
-#         for ax in axs:
-#             ax.spines[['top', 'left', 'right']].set_visible(False)
- 
-#         fig.tight_layout()
-#         outpath = Path(r'figure_output/trial_trajectories/')
-#         outpath.mkdir(exist_ok=True, parents=True)
-#         fig.savefig(outpath/f'trials_{ppt_id}_1.png')
-#         fig.savefig(outpath/f'trials_{ppt_id}_1.svg')
-
-#     return
- 
 def plot_speed_curve(main_path):
-    # pos, speed, force = [9, 10, 11]
 
     paths = list(main_path.rglob('behavior_per_trial*'))
-
 
     data_per_ppt = defaultdict(list)
     for path in paths:
@@ -238,7 +150,6 @@ def plot_speed_curve(main_path):
     data_per_ppt = {ppt: list(chain.from_iterable(trials)) for ppt, trials in data_per_ppt.items()}
 
     # upsample and average per participant
-
     mean_trial_per_ppt = {}
     for ppt, trials in data_per_ppt.items():
         max_len = max([trial.shape[0] for trial in trials])
@@ -254,7 +165,7 @@ def plot_speed_curve(main_path):
         mean_trial_per_ppt[ppt] = mean_trial
         
 
-    colors = [cmap(int(i)) for i in np.linspace(0, 255, len(mean_trial_per_ppt.keys()))]
+    colors = [CMAP(int(i)) for i in np.linspace(0, 255, len(mean_trial_per_ppt.keys()))]
 
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     for i, ppt in enumerate(sorted(mean_trial_per_ppt)):
@@ -271,12 +182,7 @@ def plot_speed_curve(main_path):
     ax.set_title('Mean movement speed over trials')
     ax.set_xlim(0, 100)
     ax.spines[['top', 'right']].set_visible(False)
-    # fig.legend()
     fig.tight_layout()
     
     fig.savefig(r'figure_output/mean_movement_speed_per_trial.png')
     fig.savefig(r'figure_output/mean_movement_speed_per_trial.svg')
-
-
-    
-    
