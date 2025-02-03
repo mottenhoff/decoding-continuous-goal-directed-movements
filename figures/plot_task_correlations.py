@@ -43,7 +43,7 @@ def load_chance_level(root_path, percentile=.95):
     # Loads chance levels per participant and returns the 95% percentile of all these percentiles
     # per kinematic
 
-    chance_level_files = root_path.rglob('chance_levels_task_correlation_1000.npy') # TODO: CHANGE BACK TO 1000
+    chance_level_files = root_path.rglob('chance_levels_task_correlation_1000.npy')
     permutations = np.vstack([np.load(filepath).reshape(-1, len(KINEMATICS)) for filepath in chance_level_files])
     
     idx_percentile = int(permutations.shape[0] * percentile)

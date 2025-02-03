@@ -26,7 +26,7 @@ if __name__=='__main__':
 
     results = {path.stem: gr.get_results(path, path_data) for path in all_paths}
 
-    # Individual decoding scores per kinematic
+    # # Individual decoding scores per kinematic
     for condition, result in results.items():
         plot_decoding_scores.plot_overview(result, condition)
 

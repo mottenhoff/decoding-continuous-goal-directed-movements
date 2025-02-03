@@ -101,7 +101,7 @@ def plot_overview(results, condition):
         axs[0, i].set_title(col_titles[i], fontsize='xx-large')
 
         axs[-1, i].set_xticks(np.arange(scores.shape[0]))
-        axs[-1, i].set_xticklabels([ppt.split('_')[0].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
+        axs[-1, i].set_xticklabels([ppt.split('_')[-1].capitalize() for ppt in ppts], fontsize='small', rotation=45, ha='right')
 
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
