@@ -28,3 +28,7 @@ To create the main figures in the paper:
 2. Calculate the chance levels in `calculate_chance_levels.py`. Make sure to set the correct path in this file as well.
 3. `python make_figures.py`
 
+
+---
+Plots to make the 3d brains used in the paper are available on request.
+
