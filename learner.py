@@ -141,7 +141,7 @@ def fit(datasets, save_path):
     outer_folds = np.array_split(np.arange(y.shape[0]), n_outer_folds)
 
     # Define the grid
-    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, [5]
+    n_states, relevant, horizons = c.learn.psid.nx, c.learn.psid.n1, c.learn.psid.i
     grid_params = list(get_psid_params(n_states, relevant, horizons))
     n_grid_params = len(grid_params)
 
