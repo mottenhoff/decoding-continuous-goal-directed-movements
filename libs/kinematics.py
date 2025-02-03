@@ -1,11 +1,7 @@
 import numpy as np
 
 def get_target_vector(xyz, trials):
-
-    target_vec = trials - xyz
-     
-
-    return target_vec
+    return trials - xyz
 
 def cart_to_pol(xyz):
     # Cartesian to polar coordinates
@@ -16,16 +12,12 @@ def cart_to_pol(xyz):
 
 def differentiate(xyz, ts):
     # prepend a linaer extrapolation to assume contant diff in the first 2 samples
-
-    # TODO: Does prepent work?
-    dx = np.diff(xyz, axis=0, prepend=np.zeros((1, 3))) #prepend=xyz[:1, :] - (xyz[1,:] - xyz[0, :]))
-    dt = np.diff(ts,  axis=0, prepend=0)[:, np.newaxis] #prepend=ts[0] - (ts[1] - ts[0]))[:, np.newaxis]
+    dx = np.diff(xyz, axis=0, prepend=np.zeros((1, 3)))
+    dt = np.diff(ts,  axis=0, prepend=0)[:, np.newaxis]
 
     return dx/dt
 
 def vector_length(vec_2d):
-    # Length of vector
-    # = np.sqrt((xyz**2).sum(=1))
     return np.linalg.norm(vec_2d, axis=1, keepdims=True)
 
 def replace_values_in_new_matrix(base_matrix, indices, values):
@@ -50,9 +42,6 @@ def get_all(subset, has_target_vector=False):
     velocity = differentiate(xyz, ts)
     acceleration = differentiate(velocity, ts)
 
-    vb = velocity.copy()
-    ab = acceleration.copy()
-    
     if has_target_vector:
         # replace tha value at those indices with 0 in the differentiated vectors
         # otherwise there will be an artificial spike of speed/acceleration because
@@ -74,42 +63,9 @@ def get_all(subset, has_target_vector=False):
             except IndexError:
                 pass
 
-    
-
-
     distance = vector_length(xyz)
     speed = vector_length(velocity)
     force = vector_length(acceleration)
-    
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
-    # ax[0, 0].plot(xyz[:, 0])
-    # ax[0, 1].plot(vb[:, 0])
-    # ax[0, 2].plot(ab[:, 0])
-    # ax[0, 0].set_title('before')
-    
-    # ax[1, 0].plot(xyz[:, 0])
-    # ax[1, 1].plot(velocity[:, 0])
-    # ax[1, 2].plot(acceleration[:, 0])
-    # ax[1, 0].set_title('after')
-
-
-
-    # plt.show()
-
-
-
-
-
-    # if speed.max() > 2000:
-        
-    #     print('high spike in speed detected')
-    #     import matplotlib.pyplot as plt
-    #     fig, ax = plt.subplots(nrows=3)
-    #     ax[0].plot(xyz)
-    #     ax[1].plot(speed)
-    #     ax[2].plot(acceleration)
-    #     plt.show()
 
     kinematics = np.hstack([
         velocity,
