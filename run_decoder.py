@@ -38,11 +38,7 @@ def run(save_path, filenames, ppt_id):
         logger.info(f'Loaded {filename}')
 
         # Load and a bit of cleanup
-        try:
-            ds = load_dataset(filename, ppt_id)
-        except Exception as err:
-            logger.error(f'cannot load {filename}\n{err}')
-            continue
+        ds = load_dataset(filename, ppt_id)
 
         ds.eeg, _ = flag_irrelevant_channels(ds.eeg)
 
@@ -51,9 +47,6 @@ def run(save_path, filenames, ppt_id):
         elif c.rereferencing.laplacian:
             ds.eeg.timeseries = laplacian_reference(ds.eeg.timeseries, ds.eeg.channels)
 
-        if type(ds.eeg.total_time) != float:
-            logger.warning(f'Total time not float or int! {filename}')
-
         total_time += ds.eeg.total_time
         n_targets  += dataset_info.get_number_of_targets(ds)
         n_samples += dataset_info.get_number_of_samples(ds)
@@ -61,7 +54,7 @@ def run(save_path, filenames, ppt_id):
 
         datasets  += prepare.go(ds, save_path, i)
 
-    explore.main(datasets, save_path)
+    # explore.main(datasets, save_path)
 
     save_dataset_info(n_targets, n_samples, -1, time_between_targets, total_time,
                       ds.ppt_id, datasets[0].channels, save_path)

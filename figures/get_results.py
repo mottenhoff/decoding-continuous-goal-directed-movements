@@ -41,8 +41,6 @@ def get_results(path_main, path_data, skip=False):
         
         ppt_id = run.name
 
-        run = run/'0' if (run/'0').exists() else run  # fix for older versions
-
         if Path(run/'profile.prof') not in run.iterdir():
             continue
 

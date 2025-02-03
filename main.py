@@ -90,7 +90,8 @@ def main():
     main_path.mkdir(parents=True, exist_ok=True)
 
     data_path = Path('../data')
-    filenames = list(data_path.rglob('*.xdf'))  # All xdf files.
+    filenames = list(data_path.rglob('*.xdf'))
+    filenames = sorted(filenames)  # Ensure the same order.
 
     # Combine multiple sessions of one participant
     if c.combine:
@@ -106,8 +107,7 @@ def main():
         jobs = [[file] for file in filenames] 
 
     if c.parallel:
-        
-        pool = Pool(processes=cpu_count())
+        pool = Pool(processes=cpu_count())   # The heavy lifting is offloaded via numpy to C, so running parallel on all cores may not be faster.
         for job in jobs:
             pool.apply_async(init_run, args=(job, main_path))
         pool.close()

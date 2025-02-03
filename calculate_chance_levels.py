@@ -28,7 +28,7 @@ def calculate_chance_level_task_correlations(path, n_permutations):
 def calculate_chance_level_movement(path, n_permutations):
     print(f'Running prediction: {path}', flush=True)
     
-    z = np.load(path/'0'/'z.npy')
+    z = np.load(path/'z.npy')
     
     chance_levels = random_array_swap(z,
                                       z,
@@ -37,17 +37,16 @@ def calculate_chance_level_movement(path, n_permutations):
                                       min_block_size=.1,
                                       repetitions=n_permutations)
 
-    outpath = path/'0'
-    outpath.mkdir(parents=True, exist_ok=True)
-    np.save(outpath/f'chance_levels_prediction_{n_permutations}.npy', chance_levels)
+    np.save(path/f'chance_levels_prediction_{n_permutations}.npy', chance_levels)
 
 def main():
-    run_parallel = False
+    run_parallel = True
 
     np.random.seed(2024)
     n_permutations = 1000
 
-    main_path = Path(f'finished_runs')
+    #main_path = Path(f'finished_runs')
+    main_path = Path(f'results')
 
     conditions = main_path.rglob('sub-*')
     

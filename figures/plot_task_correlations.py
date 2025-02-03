@@ -43,7 +43,7 @@ def load_chance_level(root_path, percentile=.95):
     # Loads chance levels per participant and returns the 95% percentile of all these percentiles
     # per kinematic
 
-    chance_level_files = root_path.rglob('chance_levels_task_correlation_1000.npy')
+    chance_level_files = root_path.rglob('chance_levels_task_correlation_1000.npy') # TODO: CHANGE BACK TO 1000
     permutations = np.vstack([np.load(filepath).reshape(-1, len(KINEMATICS)) for filepath in chance_level_files])
     
     idx_percentile = int(permutations.shape[0] * percentile)
@@ -73,7 +73,7 @@ def load_contacts(ppt_id):
 
 def load_correlations(ppt_path, kinematic):
 
-    correlations = np.load(ppt_path/'0'/'task_correlations.npy')
+    correlations = np.load(ppt_path/'task_correlations.npy')
     
     return pl.DataFrame([correlations[0,  :],
                            correlations[kinematic+1, :].astype(np.float64)],
@@ -149,9 +149,6 @@ def plot_condition(path):
     for kinematic_idx, kinematic_name in enumerate(KINEMATICS):
         print(f'Running: {path} {kinematic_name}', flush=True)
         
-        if not (condition_name == 'bbhg_lap' and kinematic_name =='v'):
-            continue
-
         df = pl.DataFrame(schema={'ppt': str,
                                 'electrode': str,
                                 'anatomical_location': str,
